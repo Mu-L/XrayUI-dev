@@ -661,9 +661,9 @@ namespace XrayUI.Services
         // ── Error ─────────────────────────────────────────────────────────────
 
         public async Task<bool> ShowConfirmationAsync(string title, string message, string? confirmText = null,
-            string? cancelText = null, bool isDanger = false)
+            string? cancelText = null, bool isDanger = false, XamlRoot? xamlRoot = null)
         {
-            var dialog = CreateDialog();
+            var dialog = CreateDialog(xamlRoot);
             dialog.Title = title;
             dialog.Content = CreateMessageText(message);
             dialog.PrimaryButtonText = confirmText ?? L.Dialog_OK;
