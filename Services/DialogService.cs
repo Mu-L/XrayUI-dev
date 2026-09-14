@@ -19,12 +19,13 @@ namespace XrayUI.Services
     {
         private readonly Func<XamlRoot?> _xamlRootFactory;
 
-        /// <summary>
-        /// Caps the wrapped message text of the plain notice dialogs. Handing ContentDialog a raw
-        /// string instead lets it measure out to its 548px maximum even for a one-liner, so every
-        /// short notice opens as wide as the longest one.
-        /// </summary>
-        private const double MessageMaxWidth = 280;
+        // Wrap and cap plain messages so short notices do not expand to the dialog's max width.
+        private static TextBlock CreateMessageText(string message) => new()
+        {
+            Text = message,
+            TextWrapping = TextWrapping.Wrap,
+            MaxWidth = 280,
+        };
 
         public DialogService(Func<XamlRoot?> xamlRootFactory)
         {
@@ -662,20 +663,11 @@ namespace XrayUI.Services
         public async Task<bool> ShowConfirmationAsync(string title, string message, string? confirmText = null,
             string? cancelText = null, bool isDanger = false)
         {
-            confirmText ??= L.Dialog_OK;
-            cancelText  ??= L.Dialog_Cancel;
-            var content = new TextBlock
-            {
-                Text = message,
-                TextWrapping = TextWrapping.Wrap,
-                MaxWidth = MessageMaxWidth,
-            };
-
             var dialog = CreateDialog();
             dialog.Title = title;
-            dialog.Content = content;
-            dialog.PrimaryButtonText = confirmText;
-            dialog.CloseButtonText = cancelText;
+            dialog.Content = CreateMessageText(message);
+            dialog.PrimaryButtonText = confirmText ?? L.Dialog_OK;
+            dialog.CloseButtonText = cancelText ?? L.Dialog_Cancel;
             dialog.DefaultButton = isDanger ? ContentDialogButton.None : ContentDialogButton.Primary;
 
             if (isDanger && Application.Current.Resources.TryGetValue("DangerAccentButtonStyle", out var style) &&
@@ -735,12 +727,7 @@ namespace XrayUI.Services
         {
             var dialog = CreateDialog(xamlRoot);
             dialog.Title = title;
-            dialog.Content = new TextBlock
-            {
-                Text = message,
-                TextWrapping = TextWrapping.Wrap,
-                MaxWidth = MessageMaxWidth,
-            };
+            dialog.Content = CreateMessageText(message);
             dialog.CloseButtonText = L.Dialog_OK;
             await dialog.ShowAsync();
         }
