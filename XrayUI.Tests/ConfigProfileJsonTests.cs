@@ -327,8 +327,11 @@ public class ConfigProfileJsonTests
 
     // ── System proxy port resolution ──────────────────────────────────────
 
-    [Fact]
-    public void FindSystemProxyPort_PrefersTheMixedInTag()
+    [Theory]
+    [InlineData("socks")]
+    [InlineData("http")]
+    [InlineData("mixed")]
+    public void FindSystemProxyPort_PrefersTheMixedInTag(string protocol)
     {
         var inbounds = JsonNode.Parse("""
             [
@@ -336,8 +339,40 @@ public class ConfigProfileJsonTests
               { "tag": "mixed-in", "protocol": "socks", "port": 16890 }
             ]
             """)!.AsArray();
+        inbounds[1]!["protocol"] = protocol;
 
         Assert.Equal(16890, ConfigProfileJson.FindSystemProxyPort(inbounds));
+    }
+
+    [Theory]
+    [InlineData("dokodemo-door")]
+    [InlineData("tun")]
+    [InlineData(null)]
+    public void FindSystemProxyPort_IgnoresANonProxyMixedInTag(string? protocol)
+    {
+        var inbounds = JsonNode.Parse("""
+            [
+              { "tag": "mixed-in", "port": 5353 },
+              { "protocol": "http", "port": 18080 }
+            ]
+            """)!.AsArray();
+        inbounds[0]!["protocol"] = protocol;
+
+        Assert.Equal(18080, ConfigProfileJson.FindSystemProxyPort(inbounds));
+
+        inbounds.RemoveAt(1);
+        Assert.Null(ConfigProfileJson.FindSystemProxyPort(inbounds));
+    }
+
+    [Fact]
+    public void Validate_NonProxyMixedInTag_WarnsSystemProxyCannotBeSet()
+    {
+        var result = ConfigProfileJson.Validate("""
+            { "inbounds": [ { "tag": "mixed-in", "protocol": "dokodemo-door", "port": 5353 } ] }
+            """, ProxySlot);
+
+        Assert.True(result.IsValid);
+        Assert.True(result.Warnings.HasFlag(ConfigProfileWarning.NoSystemProxyInbound));
     }
 
     [Fact]

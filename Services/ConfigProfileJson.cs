@@ -179,20 +179,21 @@ namespace XrayUI.Services
         }
 
         /// <summary>
-        /// The port the system proxy should point at: the inbound tagged <c>mixed-in</c> if the
-        /// profile kept that name, otherwise the first socks/http inbound with a plain integer
-        /// port. Ranges and string ports are skipped — WinInet needs a single number.
+        /// The port the system proxy should point at: prefer a socks/http/mixed inbound tagged
+        /// <c>mixed-in</c>, otherwise use the first such inbound with a plain integer port.
+        /// Ranges and string ports are skipped — WinInet needs a single number.
         /// </summary>
         public static int? FindSystemProxyPort(JsonArray inbounds)
         {
-            var tagged = inbounds.OfType<JsonObject>()
+            var proxyInbounds = inbounds.OfType<JsonObject>()
+                .Where(i => AsString(i["protocol"]) is "socks" or "http" or "mixed");
+            var tagged = proxyInbounds
                 .FirstOrDefault(i => AsString(i["tag"]) == XrayConfigConstants.MixedInboundTag);
 
             if (AsPort(tagged?["port"]) is { } taggedPort) return taggedPort;
 
-            foreach (var inbound in inbounds.OfType<JsonObject>())
+            foreach (var inbound in proxyInbounds)
             {
-                if (AsString(inbound["protocol"]) is not ("socks" or "http" or "mixed")) continue;
                 if (AsPort(inbound["port"]) is { } port) return port;
             }
 
