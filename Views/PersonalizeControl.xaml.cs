@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Microsoft.UI.Xaml.Automation;
 using Windows.Storage;
 using Windows.Storage.Pickers;
@@ -65,7 +65,10 @@ namespace XrayUI.Views
                 var result = await ViewModel.ConfirmAndImportPresetAsync();
                 if (result is null) return;
 
-                var advanced = result.ImportedAdvancedRouting ? L.Personalize_ImportAdvancedSuffix : "";
+                // Both extras share the format string's single trailing slot, so no new
+                // placeholder is needed for the second one.
+                var advanced = (result.ImportedAdvancedRouting ? L.Personalize_ImportAdvancedSuffix : "")
+                    + (result.ImportedProfiles > 0 ? L.Personalize_ImportProfilesSuffix : "");
                 ShowInfo(InfoBarSeverity.Success,
                     L.Personalize_ImportSuccess,
                     Loc.Format("Personalize_ImportSuccessMsg",
@@ -137,7 +140,9 @@ namespace XrayUI.Views
 
         private async void LanguageRestartButton_Click(object sender, RoutedEventArgs e)
         {
-            await ViewModel.ApplyPendingChangesAsync();
+            // Restarting after a refused save would bring the app back on the old language and
+            // region with no explanation. ApplyPendingChangesAsync has already said why.
+            if (!await ViewModel.ApplyPendingChangesAsync()) return;
             App.Restart();
         }
 

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json.Nodes;
@@ -17,18 +17,29 @@ namespace XrayUI.Services
         }
 
         public static bool PresetExists() =>
-            File.Exists(PresetPaths.ServersFile) || File.Exists(PresetPaths.SettingsFile);
+            File.Exists(PresetPaths.ServersFile)
+            || File.Exists(PresetPaths.SettingsFile)
+            || ConfigProfileStore.HasProfilesIn(PresetPaths.ProfilesDir);
 
         public async Task<PresetImportResult> ApplyAsync()
         {
             var importedServers = await TryReplaceServersAsync().ConfigureAwait(false);
             var settingsResult = await TryReplaceSettingsAsync().ConfigureAwait(false);
 
+            // Replaces the files but never the enable switches, which are the recipient's own
+            // state. A slot already switched on therefore starts running the restored config on
+            // the next connect — which is why the result reports the count rather than
+            // succeeding silently.
+            var importedProfiles = await ConfigProfileStore
+                .CopyFromAsync(PresetPaths.ProfilesDir, overwrite: true)
+                .ConfigureAwait(false);
+
             return new PresetImportResult(
                 importedServers,
                 settingsResult.Subscriptions,
                 settingsResult.CustomRules,
-                settingsResult.AdvancedRouting);
+                settingsResult.AdvancedRouting,
+                importedProfiles);
         }
 
         private async Task<int> TryReplaceServersAsync()
@@ -59,6 +70,17 @@ namespace XrayUI.Services
 
             var target = await _settings.LoadSettingsAsync().ConfigureAwait(false);
 
+            if (target.IsFailedLoadFallback)
+            {
+                // Restoring a preset means "reset to the distributed state", and an unreadable
+                // settings.json is precisely the situation it is meant to rescue — so this is the
+                // one path that must stay able to write. The instance handed back by a failed load
+                // is refused by SaveSettingsAsync, so rebuild on clean defaults instead: whatever
+                // the broken file held could not be read back anyway, and silently reporting a
+                // successful import that wrote nothing is the worse outcome.
+                target = new AppSettings();
+            }
+
             target.Subscriptions = preset.Subscriptions is { Count: > 0 }
                 ? preset.Subscriptions
                     .Select(subscription => subscription.ToSubscription())
@@ -84,5 +106,6 @@ namespace XrayUI.Services
         int ImportedServers,
         int ImportedSubscriptions,
         int ImportedCustomRules,
-        bool ImportedAdvancedRouting);
+        bool ImportedAdvancedRouting,
+        int ImportedProfiles);
 }
