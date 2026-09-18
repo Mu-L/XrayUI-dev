@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using Microsoft.UI.Xaml.Controls;
-using Windows.Storage.Pickers;
+using Microsoft.UI;
+using Microsoft.Windows.Storage.Pickers;
 using XrayUI.Helpers;
 using XrayUI.Models;
 using XrayUI.Services;
@@ -14,11 +16,12 @@ namespace XrayUI.Views
     {
         public CustomRoutingRule? Result { get; private set; }
 
-        private readonly IntPtr _hostHwnd;
+        private readonly WindowId _hostWindowId;
+        private bool _isPicking;
 
-        public AddRuleDialog(IntPtr hostHwnd, CustomRoutingRule? existing = null)
+        public AddRuleDialog(WindowId hostWindowId, CustomRoutingRule? existing = null)
         {
-            _hostHwnd = hostHwnd;
+            _hostWindowId = hostWindowId;
             this.InitializeComponent();
             this.RequestedTheme = ThemeHelper.ActualTheme;
 
@@ -60,6 +63,7 @@ namespace XrayUI.Views
             ApplyBrowseFormatUiState();
 
             this.PrimaryButtonClick += OnPrimaryClick;
+            this.Closing += (_, args) => args.Cancel = _isPicking;
         }
 
         // ── Type changes: toggle BrowsePanel, swap placeholder + hint ─────────
@@ -138,37 +142,57 @@ namespace XrayUI.Views
 
         private async void BrowseButton_Click(object sender, RoutedEventArgs e)
         {
+            if (_isPicking) return;
             var format = GetSelectedBrowseFormat();
+            _isPicking = true;
+            BrowseButton.IsEnabled = false;
+            BrowseFormatComboBox.IsEnabled = false;
+            TypeComboBox.IsEnabled = false;
+            IsPrimaryButtonEnabled = false;
+            BrowseButtonText.Text = L.AddRule_PickerWaiting;
+            ErrorText.Visibility = Visibility.Collapsed;
+            var stopwatch = Stopwatch.StartNew();
+            Debug.WriteLine($"[AddRuleDialog] Picker requested: {format}");
 
-            if (format == "folder")
+            try
             {
-                var folderPicker = new FolderPicker
+                // Desktop pickers return paths directly and bind to this dialog's
+                // actual host window. They also support elevated TUN sessions.
+                if (format == "folder")
                 {
-                    SuggestedStartLocation = PickerLocationId.ComputerFolder,
-                };
-                folderPicker.FileTypeFilter.Add("*");
-                WinRT.Interop.InitializeWithWindow.Initialize(folderPicker, _hostHwnd);
+                    var folderPicker = new FolderPicker(_hostWindowId);
+                    var folder = await folderPicker.PickSingleFolderAsync();
+                    if (folder is null) return;
 
-                var folder = await folderPicker.PickSingleFolderAsync();
-                if (folder is null) return;
+                    // Trailing backslash matches all executables in the directory.
+                    AppendMatchValues([folder.Path.TrimEnd('\\') + "\\"]);
+                    return;
+                }
 
-                // Trailing backslash makes xray treat this as a folder match for
-                // all executables under the directory.
-                AppendMatchValues([folder.Path.TrimEnd('\\') + "\\"]);
-                return;
+                var picker = new FileOpenPicker(_hostWindowId);
+                picker.FileTypeFilter.Add(".exe");
+                var files = await picker.PickMultipleFilesAsync();
+                if (files.Count == 0) return;
+
+                AppendMatchValues(files.Select(file => format == "path" ? file.Path : Path.GetFileName(file.Path)));
             }
-
-            var picker = new FileOpenPicker
+            catch (Exception ex)
             {
-                SuggestedStartLocation = PickerLocationId.ComputerFolder,
-            };
-            picker.FileTypeFilter.Add(".exe");
-            WinRT.Interop.InitializeWithWindow.Initialize(picker, _hostHwnd);
-
-            var files = await picker.PickMultipleFilesAsync();
-            if (files.Count == 0) return;
-
-            AppendMatchValues(files.Select(file => format == "path" ? file.Path : file.Name));
+                Debug.WriteLine($"[AddRuleDialog] Picker failed ({format}): {ex}");
+                ErrorText.Text = Loc.Format("AddRule_PickerFailed", $"0x{ex.HResult:X8}");
+                ErrorText.Visibility = Visibility.Visible;
+            }
+            finally
+            {
+                // Includes time spent choosing/cancelling; not a startup latency measurement.
+                Debug.WriteLine($"[AddRuleDialog] Picker operation ended: {format}, {stopwatch.ElapsedMilliseconds} ms");
+                _isPicking = false;
+                BrowseButton.IsEnabled = true;
+                BrowseFormatComboBox.IsEnabled = true;
+                TypeComboBox.IsEnabled = true;
+                IsPrimaryButtonEnabled = true;
+                ApplyBrowseFormatUiState();
+            }
         }
 
         private void OnPrimaryClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
@@ -176,6 +200,7 @@ namespace XrayUI.Views
             var match = MatchTextBox.Text?.Trim() ?? "";
             if (CustomRuleValueParser.Parse(match).Count == 0)
             {
+                ErrorText.Text = L.AddRule_ErrorEmpty;
                 ErrorText.Visibility = Visibility.Visible;
                 args.Cancel = true;
                 return;

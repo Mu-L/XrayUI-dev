@@ -1067,6 +1067,12 @@
   <data name="AddRule_BrowseFolder" xml:space="preserve">
     <value>Browse folder...</value>
   </data>
+  <data name="AddRule_PickerWaiting" xml:space="preserve">
+    <value>Waiting for picker...</value>
+  </data>
+  <data name="AddRule_PickerFailed" xml:space="preserve">
+    <value>Couldn't open the file or folder picker ({0}). Try again, or enter the path manually.</value>
+  </data>
   <data name="AddRule_PlaceholderDomain" xml:space="preserve">
     <value>One domain or rule per line (e.g. youtube.com or geosite:cn)</value>
   </data>

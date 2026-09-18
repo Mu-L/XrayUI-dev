@@ -219,6 +219,7 @@ public static class L
     public static string AddRule_ErrorEmpty  => Loc.GetString("AddRule_ErrorEmpty");
     public static string AddRule_BrowseExe   => Loc.GetString("AddRule_BrowseExe");
     public static string AddRule_BrowseFolder => Loc.GetString("AddRule_BrowseFolder");
+    public static string AddRule_PickerWaiting => Loc.GetString("AddRule_PickerWaiting");
     public static string AddRule_PlaceholderDomain  => Loc.GetString("AddRule_PlaceholderDomain");
     public static string AddRule_PlaceholderIp      => Loc.GetString("AddRule_PlaceholderIp");
     public static string AddRule_PlaceholderProcess => Loc.GetString("AddRule_PlaceholderProcess");

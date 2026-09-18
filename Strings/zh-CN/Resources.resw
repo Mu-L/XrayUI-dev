@@ -1067,6 +1067,12 @@
   <data name="AddRule_BrowseFolder" xml:space="preserve">
     <value>浏览文件夹...</value>
   </data>
+  <data name="AddRule_PickerWaiting" xml:space="preserve">
+    <value>等待选择...</value>
+  </data>
+  <data name="AddRule_PickerFailed" xml:space="preserve">
+    <value>无法打开文件或文件夹选择框（{0}）。请重试，或手动填写路径。</value>
+  </data>
   <data name="AddRule_PlaceholderDomain" xml:space="preserve">
     <value>每行一个域名或规则，例如 youtube.com 或 geosite:cn</value>
   </data>

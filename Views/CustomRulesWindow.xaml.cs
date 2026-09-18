@@ -91,8 +91,7 @@ namespace XrayUI.Views
 
         private async void OnShowAddOrEditDialogRequested(object? sender, CustomRoutingRule? existing)
         {
-            var hostHwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-            var dialog = new AddRuleDialog(hostHwnd, existing) { XamlRoot = Content.XamlRoot };
+            var dialog = new AddRuleDialog(AppWindow.Id, existing) { XamlRoot = Content.XamlRoot };
             var result = await dialog.ShowAsync();
             if (result != ContentDialogResult.Primary || dialog.Result is null) return;
 

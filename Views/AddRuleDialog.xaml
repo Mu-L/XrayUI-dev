@@ -99,6 +99,7 @@
                    Text="请填写匹配内容"
                    Foreground="{ThemeResource SystemFillColorCriticalBrush}"
                    FontSize="11"
+                   TextWrapping="Wrap"
                    Visibility="Collapsed" />
 
     </StackPanel>
