@@ -428,6 +428,14 @@ namespace XrayUI.ViewModels
                 ServerList.IsProxyRunning = ControlPanel.IsRunning;
                 OnPropertyChanged(nameof(ActiveServerName));
                 OnPropertyChanged(nameof(TrayTooltip));
+
+                var s = await _settings.LoadSettingsAsync();
+                ControlPanel.LocalPort            = s.LocalMixedPort;
+                ControlPanel.AllowLanConnections  = s.AllowLanConnections;
+                ControlPanel.RoutingMode          = s.RoutingMode;
+                ControlPanel.IsSystemProxyEnabled = s.IsSystemProxyEnabled;
+                ControlPanel.ApplyConfigProfileState(s.UseTunConfigProfile, s.UseProxyConfigProfile);
+                ServerList.IsFilterPanelOpen      = s.OpenServerFilterPanelOnStartup;
             }
             catch (System.Exception ex)
             {

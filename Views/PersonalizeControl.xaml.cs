@@ -20,6 +20,8 @@ namespace XrayUI.Views
             AutomationProperties.SetName(AppLanguageExpander, L.Personalize_LanguageRegionExpanderAutomationName);
             AutomationProperties.SetName(ExportPresetButton, L.Personalize_ExportTooltip);
             AutomationProperties.SetName(ImportDropDownButton, L.Personalize_ImportTooltip);
+            AutomationProperties.SetName(ClearDataButton, L.Personalize_ClearDataTooltip);
+            ToolTipService.SetToolTip(ClearDataButton, L.Personalize_ClearDataTooltip);
 
             AutomationProperties.SetName(ToggleHotkeyButton, L.Personalize_HotkeyToggleAutomationName);
             AutomationProperties.SetName(RestoreHotkeyButton, L.Personalize_HotkeyRestoreAutomationName);
@@ -127,6 +129,34 @@ namespace XrayUI.Views
             catch (Exception ex)
             {
                 ShowInfo(InfoBarSeverity.Error, L.Personalize_ClashImportFailed, ex.Message);
+            }
+        }
+
+        private async void ClearDataButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!IsEnabled) return;
+            IsEnabled = false;
+            try
+            {
+                var result = await ViewModel.ConfirmAndResetAllDataAsync();
+                if (result == PersonalizeViewModel.ClearDataResult.BlockedByProxy)
+                {
+                    ShowInfo(InfoBarSeverity.Warning,
+                        L.Personalize_ClearDataBlockedTitle,
+                        L.Personalize_ClearDataBlockedMsg);
+                    return;
+                }
+                if (result != PersonalizeViewModel.ClearDataResult.Cleared) return;
+
+                App.Restart();
+            }
+            catch (Exception ex)
+            {
+                ShowInfo(InfoBarSeverity.Error, L.Personalize_ClearDataFailed, ex.Message);
+            }
+            finally
+            {
+                IsEnabled = true;
             }
         }
 

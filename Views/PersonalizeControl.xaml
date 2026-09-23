@@ -874,6 +874,7 @@
                            FontSize="15"
                            FontWeight="SemiBold" />
 
+                <StackPanel Spacing="4">
                 <Border Background="{ThemeResource LayerFillColorDefaultBrush}"
                         BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
                         BorderThickness="1"
@@ -934,6 +935,47 @@
                         </StackPanel>
                     </Grid>
                 </Border>
+
+                    <Border Background="{ThemeResource LayerFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="{ThemeResource OverlayCornerRadius}">
+                        <Grid Padding="16,13"
+                              ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <FontIcon Grid.Column="0"
+                                      Glyph="&#xE74D;"
+                                      FontSize="16"
+                                      VerticalAlignment="Center"
+                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                            <StackPanel Grid.Column="1"
+                                        VerticalAlignment="Center"
+                                        Spacing="2">
+                                <TextBlock x:Uid="Personalize_ClearDataTitle"
+                                           Text="清除所有数据"
+                                           FontSize="14" />
+                                <TextBlock x:Uid="Personalize_ClearDataDesc"
+                                           Text="清空全部节点、订阅源、自定义规则与设置，恢复初始状态"
+                                           FontSize="12"
+                                           TextWrapping="Wrap"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+
+                            <Button Grid.Column="2"
+                                    x:Name="ClearDataButton"
+                                    x:Uid="Personalize_ClearDataBtn"
+                                    Padding="12,6"
+                                    Content="清除数据"
+                                    Click="ClearDataButton_Click" />
+                        </Grid>
+                    </Border>
+                </StackPanel>
 
                 <InfoBar x:Name="OperationInfoBar"
                          IsOpen="False"

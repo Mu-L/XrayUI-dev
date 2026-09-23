@@ -51,6 +51,30 @@ namespace XrayUI.Services
             });
         }
 
+        /// <summary>
+        /// Resets all application settings and server entries to defaults on disk,
+        /// and deletes user-authored config profiles and generated xray configs.
+        /// </summary>
+        public async Task ResetToDefaultsAsync()
+        {
+            // A failed deletion must reach the caller so it reports failure instead of
+            // restarting into an apparently successful but incomplete factory reset.
+            if (Directory.Exists(AppPaths.ProfilesDir))
+            {
+                Directory.Delete(AppPaths.ProfilesDir, recursive: true);
+            }
+            File.Delete(AppPaths.XrayConfigPath);
+            File.Delete(AppPaths.XrayConfigPreviewPath);
+
+            var defaultSettings = new AppSettings
+            {
+                RoutingRegion = InferDefaultRoutingRegion(),
+                SkipInitialImport = true,
+            };
+            await SaveSettingsAsync(defaultSettings).ConfigureAwait(false);
+            await SaveServersAsync([]).ConfigureAwait(false);
+        }
+
         // ── AppSettings ───────────────────────────────────────────────────────
 
         public async Task<AppSettings> LoadSettingsAsync()

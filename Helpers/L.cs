@@ -204,6 +204,13 @@ public static class L
     public static string Personalize_HotkeyToggleAutomationName  => Loc.GetString("Personalize_HotkeyToggleAutomationName");
     public static string Personalize_HotkeyRestoreAutomationName => Loc.GetString("Personalize_HotkeyRestoreAutomationName");
     public static string Personalize_HotkeysDialogTitle         => Loc.GetString("Personalize_HotkeysDialogTitle");
+    public static string Personalize_ClearDataConfirmTitle      => Loc.GetString("Personalize_ClearDataConfirmTitle");
+    public static string Personalize_ClearDataConfirmMsg        => Loc.GetString("Personalize_ClearDataConfirmMsg");
+    public static string Personalize_ClearDataConfirmBtn        => Loc.GetString("Personalize_ClearDataConfirmBtn");
+    public static string Personalize_ClearDataFailed            => Loc.GetString("Personalize_ClearDataFailed");
+    public static string Personalize_ClearDataBlockedTitle      => Loc.GetString("Personalize_ClearDataBlockedTitle");
+    public static string Personalize_ClearDataBlockedMsg        => Loc.GetString("Personalize_ClearDataBlockedMsg");
+    public static string Personalize_ClearDataTooltip           => Loc.GetString("Personalize_ClearDataTooltip");
     public static string Error_ExportFailed                => Loc.GetString("Error_ExportFailed");
 
     // ── CustomRules / AddRule ──────────────────────────────────────────────

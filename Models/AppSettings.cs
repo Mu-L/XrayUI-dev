@@ -25,6 +25,10 @@ namespace XrayUI.Models
         [JsonIgnore]
         internal bool IsFailedLoadFallback { get; init; }
 
+        /// <summary>An explicit factory reset must stay empty on subsequent launches,
+        /// even when an exported backup remains in Import. Manual restore is still allowed.</summary>
+        public bool SkipInitialImport { get; set; }
+
         public int LocalMixedPort { get; set; } = 16890;
         /// <summary>When true, the local socks/http inbound listens on 0.0.0.0 instead of
         /// 127.0.0.1 so other devices on the LAN can use this machine as a proxy.</summary>

@@ -1274,6 +1274,36 @@
   <data name="Personalize_PresetMissingMsg" xml:space="preserve">
     <value>Put an exported backup in the Import folder next to the app first.</value>
   </data>
+  <data name="Personalize_ClearDataTitle.Text" xml:space="preserve">
+    <value>Clear All Data</value>
+  </data>
+  <data name="Personalize_ClearDataDesc.Text" xml:space="preserve">
+    <value>Remove all servers, subscriptions, custom rules, and settings to restore defaults</value>
+  </data>
+  <data name="Personalize_ClearDataBtn.Content" xml:space="preserve">
+    <value>Clear Data</value>
+  </data>
+  <data name="Personalize_ClearDataConfirmTitle" xml:space="preserve">
+    <value>Clear all application data?</value>
+  </data>
+  <data name="Personalize_ClearDataConfirmMsg" xml:space="preserve">
+    <value>This will permanently remove all saved servers, subscriptions, custom routing rules, and application settings, restoring defaults. The app will restart automatically when finished.&#x0a;&#x0a;This action cannot be undone. Are you sure you want to continue?</value>
+  </data>
+  <data name="Personalize_ClearDataConfirmBtn" xml:space="preserve">
+    <value>Clear All Data</value>
+  </data>
+  <data name="Personalize_ClearDataFailed" xml:space="preserve">
+    <value>Failed to clear data</value>
+  </data>
+  <data name="Personalize_ClearDataBlockedTitle" xml:space="preserve">
+    <value>Stop the proxy first</value>
+  </data>
+  <data name="Personalize_ClearDataBlockedMsg" xml:space="preserve">
+    <value>The proxy is currently running. Please disconnect before clearing data.</value>
+  </data>
+  <data name="Personalize_ClearDataTooltip" xml:space="preserve">
+    <value>Clear all data and restore defaults</value>
+  </data>
   <data name="ChainProxy_NameLabel.Text" xml:space="preserve">
     <value>Name</value>
   </data>

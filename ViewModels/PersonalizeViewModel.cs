@@ -435,6 +435,40 @@ namespace XrayUI.ViewModels
             return result;
         }
 
+        public enum ClearDataResult
+        {
+            Cancelled,
+            BlockedByProxy,
+            Cleared,
+        }
+
+        public async Task<ClearDataResult> ConfirmAndResetAllDataAsync()
+        {
+            var confirmed = await _dialogs.ShowConfirmationAsync(
+                L.Personalize_ClearDataConfirmTitle,
+                L.Personalize_ClearDataConfirmMsg,
+                L.Personalize_ClearDataConfirmBtn,
+                L.Dialog_Cancel,
+                isDanger: true);
+            if (!confirmed)
+                return ClearDataResult.Cancelled;
+
+            if (IsProxyRunning?.Invoke() == true)
+                return ClearDataResult.BlockedByProxy;
+
+            await ResetAllDataAsync();
+            return ClearDataResult.Cleared;
+        }
+
+        public Task ResetAllDataAsync() => WithStartupWriteLockAsync(async () =>
+        {
+            // Finish any pending startup/Done save before replacing settings. The caller
+            // restarts immediately on success, so do not trigger live setters or reload
+            // events here: their asynchronous saves could write old state back to disk.
+            await Task.Run(() => _startup.SetStartupEnabled(false));
+            await _settings.ResetToDefaultsAsync();
+        });
+
         [RelayCommand]
         private Task Done() => WithStartupWriteLockAsync(SaveAndCloseAsync);
 
