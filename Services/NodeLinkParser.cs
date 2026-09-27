@@ -72,6 +72,17 @@ namespace XrayUI.Services
                     var userinfoPart = rest.Substring(0, atIdx);
                     var hostPart     = rest.Substring(atIdx + 1);
 
+                    // SIP002 permits one optional '/' after the port. Query and fragment
+                    // have already been handled; leave credentials untouched and reject
+                    // non-empty paths instead of silently discarding their contents.
+                    var slashIdx = hostPart.IndexOf('/');
+                    if (slashIdx >= 0)
+                    {
+                        if (slashIdx != hostPart.Length - 1)
+                            return null;
+                        hostPart = hostPart.Substring(0, slashIdx);
+                    }
+
                     var decoded = TryBase64Decode(userinfoPart);
                     if (decoded != null && decoded.Contains(':'))
                     {

@@ -71,11 +71,52 @@ namespace XrayUI.Tests
             Assert.Equal(key, s.Password);
         }
 
-        [Fact]
-        public void Parse_SsWithSip003Plugin_ReturnsNull()
+        [Theory]
+        [InlineData("")]
+        [InlineData("/")]
+        public void Parse_SsWithSip003Plugin_ReturnsNull(string separator)
         {
             // xray-core has no SIP003 outbound; importing would save an unconnectable node.
-            var link = $"ss://{B64("aes-256-gcm:pw")}@example.com:8388?plugin=v2ray-plugin%3Btls#X";
+            var link = $"ss://{B64("aes-256-gcm:pw")}@example.com:8388{separator}?plugin=v2ray-plugin%3Btls#X";
+
+            Assert.Null(NodeLinkParser.Parse(link));
+        }
+
+        [Theory]
+        [InlineData("example.com", "example.com", "", false)]
+        [InlineData("example.com", "example.com", "?group=Test%2FGroup", false)]
+        [InlineData("[2001:db8::1]", "2001:db8::1", "?group=Test%2FGroup", false)]
+        [InlineData("example.com", "example.com", "?group=Test%2FGroup", true)]
+        [InlineData("[2001:db8::1]", "2001:db8::1", "", true)]
+        public void Parse_SsOptionalSlash_PreservesCredentialsAndName(
+            string authorityHost, string expectedHost, string query, bool rawUserinfo)
+        {
+            var method = rawUserinfo ? "2022-blake3-aes-256-gcm" : "aes-256-gcm";
+            var password = rawUserinfo ? "8JmyO+3Sm2b1/2rDDDF8Tw==" : "p@ss:w0rd/+=?";
+            var userinfo = rawUserinfo
+                ? Uri.EscapeDataString($"{method}:{password}")
+                : B64($"{method}:{password}");
+            var link = $"ss://{userinfo}@{authorityHost}:8388/{query}#My%2FNode";
+
+            var s = NodeLinkParser.Parse(link);
+
+            Assert.NotNull(s);
+            Assert.Equal("ss", s.Protocol);
+            Assert.Equal(method, s.Encryption);
+            Assert.Equal(password, s.Password);
+            Assert.Equal(expectedHost, s.Host);
+            Assert.Equal(8388, s.Port);
+            Assert.Equal("My/Node", s.Name);
+        }
+
+        [Theory]
+        [InlineData("/path")]
+        [InlineData("/path/")]
+        [InlineData("//")]
+        [InlineData("/path:443")]
+        public void Parse_SsNonEmptyOrRepeatedPath_ReturnsNull(string path)
+        {
+            var link = $"ss://{B64("aes-256-gcm:pw")}@example.com:8388{path}?group=Test#Node";
 
             Assert.Null(NodeLinkParser.Parse(link));
         }
