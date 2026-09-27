@@ -11,6 +11,7 @@ using Windows.UI;
 using WinUIEx;
 using WinUIEx.Messaging;
 using XrayUI.Helpers;
+using XrayUI.Models;
 using XrayUI.Services;
 
 namespace XrayUI
@@ -39,7 +40,8 @@ namespace XrayUI
         // returns to maximized instead of the plain windowed size.
         private bool _restoreMaximizedOnExpand;
         private bool _personalizeRealized;
-        private readonly bool _startMinimized;
+        private readonly LaunchKind _launchKind;
+        private bool StartMinimized => _launchKind == LaunchKind.Boot;
         // Set when we parked the window off-screen at startup; cleared after
         // we re-center it on the first user-initiated show (tray click).
         private bool _needsCenterOnFirstShow;
@@ -73,10 +75,10 @@ namespace XrayUI
             SetMiniMode(false);
         }
 
-        public MainWindow(bool startMinimized = false)
+        public MainWindow(LaunchKind launchKind)
         {
-            _startMinimized           = startMinimized;
-            _needsCenterOnFirstShow   = startMinimized;
+            _launchKind               = launchKind;
+            _needsCenterOnFirstShow   = StartMinimized;
 
             // Build services before InitializeComponent so ViewModel is ready for x:Bind
             var settingsService = new SettingsService();
@@ -149,7 +151,7 @@ namespace XrayUI
             // stays alive for any dialogs raised during InitializeAsync (e.g.
             // auto-connect errors). The full tray transition (ReleaseUiResources)
             // runs after init so resources are still freed in the minimized case.
-            if (_startMinimized)
+            if (StartMinimized)
             {
                 AppWindow.IsShownInSwitchers = false;
                 AppWindow.Hide();
@@ -157,7 +159,7 @@ namespace XrayUI
 
             try
             {
-                await ViewModel.InitializeAsync(isBootLaunch: _startMinimized);
+                await ViewModel.InitializeAsync(_launchKind);
                 _initialization.TrySetResult();
             }
             catch (Exception ex)
@@ -167,7 +169,7 @@ namespace XrayUI
             }
             RegisterGlobalHotkeys();
 
-            if (_startMinimized && !HideToTray())
+            if (StartMinimized && !HideToTray())
             {
                 RestoreFromTray();
             }

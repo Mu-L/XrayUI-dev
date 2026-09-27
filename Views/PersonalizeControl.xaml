@@ -504,24 +504,24 @@
             <!-- ── Startup ─────────────────────────────────────────────────── -->
             <StackPanel Spacing="10">
                 <TextBlock x:Uid="Personalize_Startup"
-                           Text="启动"
+                           Text="启动选项"
                            FontSize="15"
                            FontWeight="SemiBold" />
 
-                <!-- Deliberately no IsExpanded binding: expansion is view state and the switch is
-                     data state. Coupling them reflows everything below the section on a gesture
-                     that was only meant to change a setting, and overrides a collapse the user
-                     chose. Same reason PowerToys leaves its settings expanders alone. -->
-                <Expander HorizontalAlignment="Stretch"
-                          HorizontalContentAlignment="Stretch"
-                          Style="{StaticResource AppSettingsExpanderStyle}">
-                    <Expander.Header>
-                        <!-- Right padding 4, not the 16 the other headers use: ToggleSwitch's
-                             template reserves a fixed 12px trailing spacer, so 4+12 puts the pill
-                             where the language expander's ComboBox sits. -->
-                        <Grid Padding="0,16,4,16"
-                              ColumnSpacing="12"
-                              HorizontalAlignment="Stretch">
+                <!-- One multi-row card, the Protocol Colors pattern, so the page doesn't grow a card
+                     per setting. Auto-connect is a single row with one checkbox per launch kind:
+                     the two flags stay independent without two separate "auto-connect" entries. -->
+                <Border Background="{ThemeResource LayerFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{ThemeResource OverlayCornerRadius}">
+                    <StackPanel>
+
+                        <!-- Run at startup. Right padding 6, not 16: ToggleSwitch's template reserves a
+                             fixed 12px trailing spacer, so 6+12 ends the pill on the same edge as the
+                             checkboxes below. -->
+                        <Grid Padding="16,13,6,13"
+                              ColumnSpacing="12">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
@@ -562,38 +562,59 @@
                                           MinWidth="0"
                                           VerticalAlignment="Center" />
                         </Grid>
-                    </Expander.Header>
 
-                    <!-- Subordinate option, so a CheckBox rather than a second switch: the switch
-                         above turns the boot task on, this only qualifies what that launch does.
-                         Left 58 is the row inset the other AppSettingsExpanderStyle sections use,
-                         which puts the box under the header title. Disabled while autostart is
-                         off — auto-connect only ever runs from the boot task. -->
-                    <CheckBox HorizontalAlignment="Stretch"
-                              HorizontalContentAlignment="Stretch"
-                              Margin="58,10,16,10"
-                              IsEnabled="{x:Bind ViewModel.IsStartupEnabled, Mode=OneWay}"
-                              IsChecked="{x:Bind ViewModel.IsAutoConnect, Mode=TwoWay}">
-                        <StackPanel VerticalAlignment="Center"
-                                    Spacing="2">
-                            <TextBlock x:Uid="Personalize_AutoConnectTitle"
-                                       Text="启动后自动连接"
-                                       FontSize="14" />
-                            <!-- Opacity, not TextFillColorSecondaryBrush like every other
-                                 description on this page: a local Foreground outranks the
-                                 foreground the CheckBox template hands its content when disabled,
-                                 so the brush version stays bright next to a greyed title. Dimming
-                                 the inherited color instead follows the row into the disabled
-                                 state, and in both themes lands within a few percent of the
-                                 secondary brush. -->
-                            <TextBlock x:Uid="Personalize_AutoConnectDesc"
-                                       Text="开机启动时连接上次使用的节点"
-                                       FontSize="12"
-                                       TextWrapping="Wrap"
-                                       Opacity="0.75" />
-                        </StackPanel>
-                    </CheckBox>
-                </Expander>
+                        <Rectangle Height="1"
+                                   Fill="{ThemeResource DividerStrokeColorDefaultBrush}"
+                                   Margin="16,0" />
+
+                        <!-- Auto-connect -->
+                        <Grid Padding="16,13"
+                              ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <FontIcon Grid.Column="0"
+                                      Glyph="&#xEC77;"
+                                      FontSize="16"
+                                      VerticalAlignment="Center"
+                                      Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                            <StackPanel Grid.Column="1"
+                                        VerticalAlignment="Center"
+                                        Spacing="2">
+                                <TextBlock x:Uid="Personalize_AutoConnectTitle"
+                                           Text="启动后自动连接"
+                                           FontSize="14" />
+                                <TextBlock x:Uid="Personalize_AutoConnectDesc"
+                                           Text="连接上次使用的节点"
+                                           FontSize="12"
+                                           TextWrapping="Wrap"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+
+                            <!-- MinWidth 0: CheckBox defaults to 120, which leaves dead space after these
+                                 short labels and pulls the pair off the pill's edge. The boot box is
+                                 disabled while autostart is off, since that launch never happens. -->
+                            <StackPanel Grid.Column="2"
+                                        Orientation="Horizontal"
+                                        Spacing="16"
+                                        VerticalAlignment="Center">
+                                <CheckBox x:Uid="Personalize_AutoConnectAtBoot"
+                                          Content="开机启动时"
+                                          MinWidth="0"
+                                          IsEnabled="{x:Bind ViewModel.IsStartupEnabled, Mode=OneWay}"
+                                          IsChecked="{x:Bind ViewModel.IsAutoConnect, Mode=TwoWay}" />
+                                <CheckBox x:Uid="Personalize_AutoConnectOnOpen"
+                                          Content="手动打开时"
+                                          MinWidth="0"
+                                          IsChecked="{x:Bind ViewModel.IsAutoConnectOnOpen, Mode=TwoWay}" />
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
             </StackPanel>
 
             <!-- Display settings -->

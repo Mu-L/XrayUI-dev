@@ -1134,7 +1134,7 @@
     <value>节点卡片上展示所属订阅分组</value>
   </data>
   <data name="Personalize_Startup.Text" xml:space="preserve">
-    <value>启动</value>
+    <value>启动选项</value>
   </data>
   <data name="Personalize_StartupTitle.Text" xml:space="preserve">
     <value>开机自启动</value>
@@ -1146,7 +1146,7 @@
     <value>启动后自动连接</value>
   </data>
   <data name="Personalize_AutoConnectDesc.Text" xml:space="preserve">
-    <value>开机启动时连接上次使用的节点</value>
+    <value>连接上次使用的节点</value>
   </data>
   <data name="Personalize_OpenFilterPanelOnStartup.Text" xml:space="preserve">
     <value>启动时展开筛选栏</value>
@@ -1517,5 +1517,11 @@
   </data>
   <data name="JumpList_Unavailable" xml:space="preserve">
     <value>此节点已删除或当前不可用。请选择其他节点。</value>
+  </data>
+  <data name="Personalize_AutoConnectAtBoot.Content" xml:space="preserve">
+    <value>开机启动时</value>
+  </data>
+  <data name="Personalize_AutoConnectOnOpen.Content" xml:space="preserve">
+    <value>手动打开时</value>
   </data>
 </root>

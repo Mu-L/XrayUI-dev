@@ -48,9 +48,16 @@ namespace XrayUI.Models
         public bool TunIpv6Enabled { get; set; } = false;
         public bool IsStartupEnabled { get; set; } = false;
         public bool IsAutoConnect    { get; set; } = false;
+        /// <summary>Auto-connect when the user opens the app by hand (not boot, jump list or
+        /// TUN relaunch). Independent of <see cref="IsAutoConnect"/>.</summary>
+        public bool IsAutoConnectOnOpen { get; set; } = false;
+        /// <summary>Either auto-connect flag needs <see cref="LastAutoConnectServerId"/> kept current.</summary>
+        [JsonIgnore]
+        public bool WantsAutoConnectTarget => IsAutoConnect || IsAutoConnectOnOpen;
         /// <summary>true = global proxy (default); false = do not take over the system proxy.</summary>
         public bool IsSystemProxyEnabled { get; set; } = true;
-        /// <summary>Stable ID (ServerEntry.Id) of the most recently connected server — used for auto-connect on boot.</summary>
+        /// <summary>Stable ID (ServerEntry.Id) of the most recently connected server — the target
+        /// of both boot and on-open auto-connect.</summary>
         public string? LastAutoConnectServerId { get; set; }
         /// <summary>Legacy (pre-Id) name-based setting. Read once for migration on first load after upgrade.</summary>
         public string? LastAutoConnectServerName { get; set; }

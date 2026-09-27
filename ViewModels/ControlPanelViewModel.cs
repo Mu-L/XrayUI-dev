@@ -52,8 +52,8 @@ namespace XrayUI.ViewModels
         public ServerEntry? ActiveServer => IsRunning ? _activeServer : null;
 
         /// <summary>Id of the node xray is running right now, or null when stopped. Read by
-        /// PersonalizeViewModel when auto-connect is switched on mid-session, so the boot
-        /// target is the node actually in use rather than whatever the list has selected.</summary>
+        /// PersonalizeViewModel when auto-connect is switched on mid-session, so the
+        /// auto-connect target is the node actually in use rather than whatever the list has selected.</summary>
         public string? ActiveServerId => ActiveServer?.Id;
 
         /// <summary>The local socks/http port the running config actually exposes, or null when
@@ -318,9 +318,9 @@ namespace XrayUI.ViewModels
             var appSettings = await _settings.LoadSettingsAsync();
             ApplyLiveSessionState(appSettings, tunMode);
             // Auto-connect lives in Personalize now; settings are the shared truth and this
-            // load is already on the path, so read the flag from there instead of mirroring
-            // it onto a second property here.
-            if (appSettings.IsAutoConnect)
+            // load is already on the path, so read the flags from there instead of mirroring
+            // them onto properties here.
+            if (appSettings.WantsAutoConnectTarget)
                 appSettings.LastAutoConnectServerId = server.Id;
 
             if (tunMode)
