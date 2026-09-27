@@ -193,9 +193,9 @@ public class TunService
 
     /// <summary>
     /// Best-effort reset of stale DNS server entries that Windows can persist on the
-    /// xray-tun adapter between runs. Uses netsh (fast, ~10ms) so it doesn't stall
-    /// startup or shutdown. Safe to call when the adapter doesn't exist — netsh emits
-    /// a non-zero exit code but doesn't abort the batch (commands are chained with `&`).
+    /// xray-tun adapter between runs. Done in-process through IP Helper; netsh (~115ms per
+    /// command) is only the fallback when that is unavailable. Safe to call when the adapter
+    /// doesn't exist — the usual case before xray has started — there is nothing to reset.
     /// Skipped silently when not elevated: a DNS reset isn't worth a UAC prompt, and
     /// the cleanup-path callers already pay UAC via <see cref="CleanupTunRoutes"/>.
     /// </summary>
@@ -206,6 +206,9 @@ public class TunService
 
         try
         {
+            if (TryResetTunDnsInProcess())
+                return;
+
             RunElevatedBatch(BuildDnsResetBatch());
         }
         catch (Exception ex)
@@ -213,6 +216,10 @@ public class TunService
             Debug.WriteLine($"[TunService] TUN DNS 重置失败: {ex.Message}");
         }
     }
+
+    private static bool TryResetTunDnsInProcess() =>
+        !TunNetworkInterop.TryGetInterfaceLuid(TunInterfaceName, out var luid)
+        || TunNetworkInterop.TryClearDnsServers(luid);
 
     private static List<string> BuildDnsResetBatch() =>
     [
@@ -224,15 +231,22 @@ public class TunService
     /// Fallback cleanup: xray removes its own routes on normal exit, so this is only used
     /// after an abnormal xray exit or when routes remain after exit. Removes the 0.0.0.0/0
     /// fallback route plus the direct route to the server, and resets any stale DNS entries
-    /// on the xray-tun adapter — all in one elevated batch so the user sees at most one UAC.
+    /// on the xray-tun adapter. Elevated, this runs in-process through IP Helper; the netsh /
+    /// route.exe batch — one elevated cmd, so the user sees at most one UAC — is kept for the
+    /// unelevated path and as the fallback when the in-process pass reports a failure.
     /// </summary>
     public void CleanupTunRoutes(string? serverAddress)
     {
         try
         {
-            // Older versions left direct routes for these public DNS resolvers; clean
-            // them up if they happen to be there. xray no longer adds them.
-            string[] legacyDnsServers = ["223.5.5.5", "119.29.29.29"];
+            if (AdminHelper.IsAdministrator())
+            {
+                var stopwatch = Stopwatch.StartNew();
+                var ok = TryCleanupTunRoutesInProcess(serverAddress, out var deleted);
+                Debug.WriteLine($"[TunService] 进程内兜底清理: ok={ok}, 删除路由 {deleted} 条, 耗时 {stopwatch.ElapsedMilliseconds} ms");
+                if (ok)
+                    return;
+            }
 
             var batch = new List<string>
             {
@@ -256,7 +270,7 @@ public class TunService
                 batch.Add($"route delete {serverIPv4} mask 255.255.255.255");
             }
 
-            foreach (var dns in legacyDnsServers)
+            foreach (var dns in LegacyDnsServers)
                 batch.Add($"route delete {dns} mask 255.255.255.255");
 
             batch.AddRange(BuildDnsResetBatch());
@@ -269,6 +283,46 @@ public class TunService
             Debug.WriteLine($"[TunService] 清理 TUN 路由失败: {ex.Message}");
         }
     }
+
+    // Older versions left direct routes for these public DNS resolvers; clean
+    // them up if they happen to be there. xray no longer adds them.
+    private static readonly string[] LegacyDnsServers = ["223.5.5.5", "119.29.29.29"];
+
+    /// <summary>
+    /// The in-process twin of the batch in <see cref="CleanupTunRoutes"/>, deleting the same
+    /// routes. The default routes xray adds are removed on xray-tun only — the physical adapter's
+    /// own 0.0.0.0/0 must survive — while the /1 split routes, the server /32 and the legacy
+    /// resolver /32s are removed on any interface, as the batch's route.exe lines do (its
+    /// xray-tun-scoped netsh lines for those are a subset). The DNS reset rides along, so a pass
+    /// that returns true leaves the batch nothing to do.
+    /// </summary>
+    private static bool TryCleanupTunRoutesInProcess(string? serverAddress, out int deleted)
+    {
+        IPNetwork[] tunOnly =
+        [
+            IPNetwork.Parse(XrayConfigConstants.TunAutoRouteV4),
+            IPNetwork.Parse(XrayConfigConstants.TunAutoRouteV6),
+        ];
+
+        var anyInterface = new List<IPNetwork> { IPNetwork.Parse("0.0.0.0/1"), IPNetwork.Parse("128.0.0.0/1") };
+        if (TryParseSafeIPv4Address(serverAddress, out var serverIPv4))
+            anyInterface.Add(new IPNetwork(IPAddress.Parse(serverIPv4), 32));
+        foreach (var dns in LegacyDnsServers)
+            anyInterface.Add(new IPNetwork(IPAddress.Parse(dns), 32));
+
+        var hasTun = TunNetworkInterop.TryGetInterfaceLuid(TunInterfaceName, out var tunLuid);
+        var routesOk = TunNetworkInterop.TryDeleteRoutes(
+            route => (hasTun && route.InterfaceLuid == tunLuid && IsRoute(tunOnly, route))
+                     || IsRoute(anyInterface, route),
+            out deleted);
+
+        var dnsOk = !hasTun || TunNetworkInterop.TryClearDnsServers(tunLuid);
+        return routesOk && dnsOk;
+    }
+
+    private static bool IsRoute(IEnumerable<IPNetwork> networks, TunNetworkInterop.RouteEntry route) =>
+        networks.Any(network => network.PrefixLength == route.PrefixLength
+                                && network.BaseAddress.Equals(route.Destination));
 
     private static bool TryParseSafeIPv4Address(string? value, out string address)
     {

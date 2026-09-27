@@ -44,6 +44,14 @@ namespace XrayUI.ViewModels
         /// </summary>
         public Func<ServerEntry?, string> ResolveGroupName { get; set; } = _ => string.Empty;
 
+        /// <summary>
+        /// The running core's local socks/http port (ControlPanelViewModel.ActiveLocalProxyPort),
+        /// set by MainViewModel. Read at the moment the AI checks start, never cached: a reapply
+        /// can move the port without the running state changing, and a check deferred while the
+        /// AI row was hidden would otherwise dial the dead one and paint every service blocked.
+        /// </summary>
+        public Func<int?> GetActiveLocalProxyPort { get; set; } = () => null;
+
         private ServerEntry? ResolveChainServer(string id)
             => string.IsNullOrEmpty(id) ? null : GetAllServers().FirstOrDefault(s => s.Id == id);
 
@@ -215,6 +223,12 @@ namespace XrayUI.ViewModels
         public Visibility LatencyVisibility => ShowLatencyInDetails ? Visibility.Visible : Visibility.Collapsed;
 
         public Visibility AiUnlockVisibility => ShowAiUnlockInDetails ? Visibility.Visible : Visibility.Collapsed;
+
+        partial void OnShowAiUnlockInDetailsChanged(bool value)
+        {
+            if (value)
+                StartAiUnlockChecksIfNeeded();
+        }
 
         // ── AI Unlock indicators ──────────────────────────────────────────────
 
@@ -440,26 +454,36 @@ namespace XrayUI.ViewModels
         /// <summary>
         /// Called by the view / MainViewModel when the proxy starts or stops.
         /// </summary>
-        public void OnProxyRunningChanged(bool isRunning, int? httpProxyPort)
+        public void OnProxyRunningChanged(bool isRunning)
         {
             CancelPendingAiCheck();
             IsProxyRunning = isRunning;
 
-            if (!isRunning)
-            {
-                ClearAiUnlockResults();
-                UpdateAiUnlockDisplay();
-                return;
-            }
-
             ClearAiUnlockResults();
             UpdateAiUnlockDisplay();
+            StartAiUnlockChecksIfNeeded();
+        }
+
+        /// <summary>
+        /// Runs the three checks for the live session unless their results could not be seen:
+        /// while the AI row is hidden they are three HTTPS round trips through the new node on
+        /// every connect, competing with the user's own first requests. Showing the row
+        /// mid-session re-enters here; a session that already has results or an in-flight check
+        /// is left alone.
+        /// </summary>
+        private void StartAiUnlockChecksIfNeeded()
+        {
+            if (!IsProxyRunning || !ShowAiUnlockInDetails || _aiCheckCts is not null)
+                return;
+
+            if (_openAiStatus is not null || _claudeStatus is not null || _geminiStatus is not null)
+                return;
 
             // No local port means a config profile publishes no socks/http inbound, so there is
             // nothing to probe through. Leave the dots neutral instead of running the checks:
             // every failure path in AiUnlockCheckService reports Blocked, which would paint a
             // red "this node is blocked" for what is really "we never reached the core".
-            if (httpProxyPort is { } port)
+            if (GetActiveLocalProxyPort() is { } port)
                 _ = RunAiUnlockChecksAsync(port);
         }
 
