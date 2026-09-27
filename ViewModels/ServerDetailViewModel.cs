@@ -24,10 +24,6 @@ namespace XrayUI.ViewModels
         private AiUnlockStatus? _openAiStatus;
         private AiUnlockStatus? _claudeStatus;
         private AiUnlockStatus? _geminiStatus;
-        // Local proxy port of the live session, kept so a check skipped while the AI row was
-        // hidden can still run if the row is shown mid-session. Null when stopped or when the
-        // config exposes no socks/http inbound.
-        private int? _aiCheckPort;
 
         public ServerDetailViewModel(LatencyProbeService latencyProbe, AiUnlockCheckService aiUnlockCheck)
         {
@@ -47,6 +43,14 @@ namespace XrayUI.ViewModels
         /// subscription list that lives in ServerListViewModel without a back-reference.
         /// </summary>
         public Func<ServerEntry?, string> ResolveGroupName { get; set; } = _ => string.Empty;
+
+        /// <summary>
+        /// The running core's local socks/http port (ControlPanelViewModel.ActiveLocalProxyPort),
+        /// set by MainViewModel. Read at the moment the AI checks start, never cached: a reapply
+        /// can move the port without the running state changing, and a check deferred while the
+        /// AI row was hidden would otherwise dial the dead one and paint every service blocked.
+        /// </summary>
+        public Func<int?> GetActiveLocalProxyPort { get; set; } = () => null;
 
         private ServerEntry? ResolveChainServer(string id)
             => string.IsNullOrEmpty(id) ? null : GetAllServers().FirstOrDefault(s => s.Id == id);
@@ -450,11 +454,10 @@ namespace XrayUI.ViewModels
         /// <summary>
         /// Called by the view / MainViewModel when the proxy starts or stops.
         /// </summary>
-        public void OnProxyRunningChanged(bool isRunning, int? httpProxyPort)
+        public void OnProxyRunningChanged(bool isRunning)
         {
             CancelPendingAiCheck();
             IsProxyRunning = isRunning;
-            _aiCheckPort = isRunning ? httpProxyPort : null;
 
             ClearAiUnlockResults();
             UpdateAiUnlockDisplay();
@@ -480,7 +483,7 @@ namespace XrayUI.ViewModels
             // nothing to probe through. Leave the dots neutral instead of running the checks:
             // every failure path in AiUnlockCheckService reports Blocked, which would paint a
             // red "this node is blocked" for what is really "we never reached the core".
-            if (_aiCheckPort is { } port)
+            if (GetActiveLocalProxyPort() is { } port)
                 _ = RunAiUnlockChecksAsync(port);
         }
 

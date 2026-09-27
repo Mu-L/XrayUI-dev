@@ -101,6 +101,7 @@ namespace XrayUI.ViewModels
             ControlPanel.CanStartSelectedServer = () => ServerList.CanRunSelectedServer;
             ServerList.ServersChanged += (_, _) => _ = _jumpList.RefreshAsync(ServerList.Servers);
             ServerDetail.GetAllServers = () => ServerList.Servers;
+            ServerDetail.GetActiveLocalProxyPort = () => ControlPanel.ActiveLocalProxyPort;
             ServerDetail.ResolveGroupName = ServerList.GetGroupDisplayName;
             ServerDetail.OpenSubscriptions = ServerList.OpenSubscriptionsOnManagePageAsync;
             // A subscription rename/delete changes the detail pane's group label without touching
@@ -542,7 +543,7 @@ namespace XrayUI.ViewModels
             OnPropertyChanged(nameof(MiniDotVisibility));
             SwitchToSelectedServerCommand.NotifyCanExecuteChanged();
 
-            ServerDetail.OnProxyRunningChanged(isRunning, ControlPanel.ActiveLocalProxyPort);
+            ServerDetail.OnProxyRunningChanged(isRunning);
 
             if (isRunning && !ControlPanel.IsUpdateAvailable)
                 QueueUpdateCheck(ControlPanel.ActiveLocalProxyUrl);
