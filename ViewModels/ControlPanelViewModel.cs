@@ -301,9 +301,11 @@ namespace XrayUI.ViewModels
             IsRunning = false;
         }
 
-        private async Task<bool> StartSelectedServerAsync()
+        /// <param name="serverOverride">Starts this server instead of the list selection. TUN
+        /// reapply passes the live node, since the selection may have moved off it.</param>
+        private async Task<bool> StartSelectedServerAsync(ServerEntry? serverOverride = null)
         {
-            var server = GetSelectedServer();
+            var server = serverOverride ?? GetSelectedServer();
             if (server is null)
             {
                 await _dialogs.ShowErrorAsync(L.Error_NoServer, L.Error_NoServerMsg);
@@ -462,20 +464,24 @@ namespace XrayUI.ViewModels
         /// <summary>
         /// Rebuild xray config from persisted settings and restart xray. No-op if not running.
         /// Always reapplies against the live _activeServer, not the currently-selected list entry.
-        /// Not used in TUN mode: changing DNS/routing there is saved and takes effect
-        /// after the user restarts the proxy session.
+        /// In TUN mode the whole session is rebuilt instead — see <see cref="ReapplyTunSessionAsync"/>.
         /// </summary>
         public async Task ReapplyRoutingAsync()
         {
             if (!IsRunning) return;
             if (_activeServer is null) return;
-            if (IsTunMode) return;
 
             await _reapplyLock.WaitAsync();
             try
             {
                 var activeServer = _activeServer;
                 if (!IsRunning || activeServer is null) return;
+
+                if (IsTunMode)
+                {
+                    await ReapplyTunSessionAsync(activeServer);
+                    return;
+                }
 
                 IsReapplying = true;
                 try
@@ -518,6 +524,33 @@ namespace XrayUI.ViewModels
         }
 
         /// <summary>
+        /// TUN counterpart of the plain restart in <see cref="ReapplyRoutingAsync"/>: the same full
+        /// stop-then-start a node switch runs, targeting the live node. xray owns the TUN routes
+        /// (autoSystemRoutingTable), so a fresh session re-creates the adapter and its routes on
+        /// its own; the stop half runs the route/DNS cleanup and the start half the preflight,
+        /// exactly as when switching. Existing connections drop, as they do on a switch.
+        /// Caller holds _reapplyLock.
+        /// </summary>
+        private async Task ReapplyTunSessionAsync(ServerEntry activeServer)
+        {
+            IsReapplying = true;
+            try
+            {
+                await StopCurrentSessionAsync();
+                await StartSelectedServerAsync(activeServer);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ControlPanel] TUN reapply failed: {ex}");
+                await HandleStartStopFailureAsync(ex);
+            }
+            finally
+            {
+                IsReapplying = false;
+            }
+        }
+
+        /// <summary>
         /// Reapply failed. xray is stopped (StartAsync stops first, then failed).
         /// Clear state, revert UI to not-running, notify user.
         /// Caller is already inside _reapplyLock.
@@ -530,15 +563,8 @@ namespace XrayUI.ViewModels
             }
             catch (Exception ex) { Debug.WriteLine($"[ControlPanel] Stop after reapply failure: {ex.Message}"); }
 
-            if (IsTunMode)
-            {
-                try { await CleanupTunStateAsync(); }
-                catch (Exception ex) { Debug.WriteLine($"[ControlPanel] TUN cleanup after reapply failure: {ex.Message}"); }
-            }
-            else
-            {
-                SystemProxyService.ClearProxy();
-            }
+            // Proxy mode only: a TUN reapply fails through the switch path's handler instead.
+            SystemProxyService.ClearProxy();
 
             ClearActiveSession();
 
@@ -684,9 +710,9 @@ namespace XrayUI.ViewModels
         public string TunModeText => IsTunMode ? "On" : "Off";
 
         /// <summary>
-        /// Whether routing mode and proxy mode can be toggled.
-        /// Runtime changes automatically reapply settings, but they are blocked while TUN mode is running
-        /// to avoid disturbing the TUN pipeline. Toggles are also disabled during reapply to prevent re-entry.
+        /// Whether the proxy mode (system proxy vs. manual) can be toggled. Blocked while TUN mode is
+        /// running: the adapter captures all traffic and the system proxy is cleared, so the choice
+        /// has nothing to act on there. Also disabled during reapply to prevent re-entry.
         /// </summary>
         public bool IsModeToggleEnabled => !IsReapplying && !(IsRunning && IsTunMode);
 
@@ -703,8 +729,9 @@ namespace XrayUI.ViewModels
 
         /// <summary>Gate for the gear-menu items a config profile takes ownership of: local
         /// port, routing mode, custom rules and DNS all live in the profile once it is on, so
-        /// leaving them clickable would let the UI report settings xray never sees.</summary>
-        public bool IsBuiltInConfigEnabled => IsModeToggleEnabled && !IsCustomConfigActive;
+        /// leaving them clickable would let the UI report settings xray never sees. Unlike the
+        /// proxy mode these stay live in a running TUN session, which ReapplyRoutingAsync rebuilds.</summary>
+        public bool IsBuiltInConfigEnabled => !IsReapplying && !IsCustomConfigActive;
 
         /// <summary>Pushed in at startup and whenever the profile editor saves.</summary>
         public void ApplyConfigProfileState(bool useTunProfile, bool useProxyProfile)
@@ -840,8 +867,7 @@ namespace XrayUI.ViewModels
                 settings.AllowLanConnections = AllowLanConnections;
                 await TrySaveSettingsAsync(settings, "persist local port");
 
-                // Apply live if xray is currently running (no-op in TUN mode, same as
-                // routing/DNS changes — takes effect on the next connect there).
+                // Apply live if xray is currently running (a TUN session is rebuilt).
                 if (IsRunning)
                 {
                     try { await ReapplyRoutingAsync(); }
@@ -892,8 +918,6 @@ namespace XrayUI.ViewModels
 
             await TrySaveSettingsAsync(s, "persist DNS settings");
 
-            if (IsRunning && IsTunMode) return;
-
             if (IsRunning)
             {
                 try { await ReapplyRoutingAsync(); }
@@ -929,7 +953,7 @@ namespace XrayUI.ViewModels
             s.RoutingMode = mode;
             await TrySaveSettingsAsync(s, "persist routing mode");
 
-            // Apply live if xray is currently running (UI only allows this when !IsTunMode).
+            // Apply live if xray is currently running (a TUN session is rebuilt).
             if (IsRunning)
             {
                 try { await ReapplyRoutingAsync(); }

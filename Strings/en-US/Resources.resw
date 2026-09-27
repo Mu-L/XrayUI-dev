@@ -476,9 +476,6 @@
   <data name="Log_PrivacyTitle" xml:space="preserve">
     <value>Log Privacy Settings</value>
   </data>
-  <data name="Log_PrivacySaved" xml:space="preserve">
-    <value>Saved. Takes effect on next TUN session start.</value>
-  </data>
   <data name="Log_PrivacyFailed" xml:space="preserve">
     <value>Save failed: {0}</value>
   </data>

@@ -240,7 +240,6 @@ public static class L
     public static string Log_Running       => Loc.GetString("Log_Running");
     public static string Log_NotRunning    => Loc.GetString("Log_NotRunning");
     public static string Log_PrivacyTitle  => Loc.GetString("Log_PrivacyTitle");
-    public static string Log_PrivacySaved  => Loc.GetString("Log_PrivacySaved");
     public static string Log_IpMask        => Loc.GetString("Log_IpMask");
     public static string Log_MaskOff       => Loc.GetString("Log_MaskOff");
     public static string Log_Level         => Loc.GetString("Log_Level");
