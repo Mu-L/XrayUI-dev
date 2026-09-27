@@ -5,7 +5,7 @@ using XrayUI.Models;
 namespace XrayUI.Helpers
 {
     /// <summary>
-    /// Runtime mutable store for the two global hotkeys (toggle start/stop, restore from tray).
+    /// Runtime mutable store for global hotkeys (start/stop, restore, routing mode).
     /// Loaded from AppSettings at startup; updated live by the Personalize page so MainWindow
     /// can re-register with user32 immediately, before Done persists the change — mirrors
     /// <see cref="ProtocolColorStore"/>. No separate enabled flag: a hotkey is active whenever
@@ -15,6 +15,7 @@ namespace XrayUI.Helpers
     {
         public const int ToggleId = 1;
         public const int RestoreId = 2;
+        public const int RoutingId = 3;
 
         public const uint ModAlt = 0x0001;
         public const uint ModControl = 0x0002;
@@ -33,16 +34,20 @@ namespace XrayUI.Helpers
         public static uint RestoreModifiers { get; set; }
         public static uint RestoreVirtualKey { get; set; }
 
+        public static uint RoutingModifiers { get; set; }
+        public static uint RoutingVirtualKey { get; set; }
+
         public static event EventHandler? HotkeysChanged;
         public static void NotifyHotkeysChanged() => HotkeysChanged?.Invoke(null, EventArgs.Empty);
 
-        /// <summary>Reads the combo for <see cref="ToggleId"/> or <see cref="RestoreId"/> — lets
+        /// <summary>Reads the combo for a global hotkey id — lets
         /// callers that already branch on id (MainWindow's registration loop, the Personalize
         /// hotkey dialog) avoid a separate Toggle/Restore branch just to pick the right fields.</summary>
         public static (uint Mods, uint Vk) GetCombo(int id) => id switch
         {
             ToggleId => (ToggleModifiers, ToggleVirtualKey),
             RestoreId => (RestoreModifiers, RestoreVirtualKey),
+            RoutingId => (RoutingModifiers, RoutingVirtualKey),
             _ => (0, 0),
         };
 
@@ -51,18 +56,21 @@ namespace XrayUI.Helpers
         {
             if (id == ToggleId) { ToggleModifiers = mods; ToggleVirtualKey = vk; }
             else if (id == RestoreId) { RestoreModifiers = mods; RestoreVirtualKey = vk; }
+            else if (id == RoutingId) { RoutingModifiers = mods; RoutingVirtualKey = vk; }
         }
 
         public static void LoadFrom(AppSettings s)
         {
             (ToggleModifiers, ToggleVirtualKey) = ParseCombo(s.HotkeyToggleCombo);
             (RestoreModifiers, RestoreVirtualKey) = ParseCombo(s.HotkeyRestoreCombo);
+            (RoutingModifiers, RoutingVirtualKey) = ParseCombo(s.HotkeyRoutingCombo);
         }
 
         public static void SaveTo(AppSettings s)
         {
             s.HotkeyToggleCombo = FormatCombo(ToggleModifiers, ToggleVirtualKey);
             s.HotkeyRestoreCombo = FormatCombo(RestoreModifiers, RestoreVirtualKey);
+            s.HotkeyRoutingCombo = FormatCombo(RoutingModifiers, RoutingVirtualKey);
         }
 
         private static (uint mods, uint vk) ParseCombo(string? raw)
@@ -98,7 +106,7 @@ namespace XrayUI.Helpers
         // VK_OEM_* codes are positional (US QWERTY) rather than character-based, so ToUnicode/
         // the active keyboard layout would be needed for a fully layout-correct label. Hardcoding
         // the US QWERTY glyph is the same simplification most editors' keybinding UIs make, and is
-        // good enough for a 2-hotkey feature — not worth pulling in MapVirtualKey/ToUnicode interop.
+        // sufficient here without pulling in MapVirtualKey/ToUnicode interop.
         private static string KeyName(uint vk) => vk switch
         {
             >= 0x30 and <= 0x39 => ((char)vk).ToString(), // 0-9

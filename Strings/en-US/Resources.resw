@@ -1178,6 +1178,12 @@
   <data name="Personalize_HotkeyNotSet" xml:space="preserve">
     <value>Assign shortcut</value>
   </data>
+  <data name="Personalize_HotkeyRoutingTitle.Text" xml:space="preserve">
+    <value>Switch Routing Mode</value>
+  </data>
+  <data name="Personalize_HotkeyRoutingAutomationName" xml:space="preserve">
+    <value>Switch routing mode between Smart and Global hotkey</value>
+  </data>
   <data name="Personalize_HotkeyConflictTitle" xml:space="preserve">
     <value>Failed to Set Hotkey</value>
   </data>
@@ -1287,7 +1293,9 @@
     <value>Clear all application data?</value>
   </data>
   <data name="Personalize_ClearDataConfirmMsg" xml:space="preserve">
-    <value>This will permanently remove all saved servers, subscriptions, custom routing rules, and application settings, restoring defaults. The app will restart automatically when finished.&#x0a;&#x0a;This action cannot be undone. Are you sure you want to continue?</value>
+    <value>This will permanently remove all saved servers, subscriptions, custom routing rules, and application settings, restoring defaults. The app will restart automatically when finished.
+
+This action cannot be undone. Are you sure you want to continue?</value>
   </data>
   <data name="Personalize_ClearDataConfirmBtn" xml:space="preserve">
     <value>Clear All Data</value>

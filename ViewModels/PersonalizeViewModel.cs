@@ -326,6 +326,9 @@ namespace XrayUI.ViewModels
         [ObservableProperty]
         public partial string HotkeyRestoreDisplay { get; set; } = "";
 
+        [ObservableProperty]
+        public partial string HotkeyRoutingDisplay { get; set; } = "";
+
         /// <summary>True once a combo is recorded — drives the "+" assign-shortcut icon shown
         /// only in the unset state (PowerToys-style), hidden once a real combo is displayed.</summary>
         [ObservableProperty]
@@ -334,8 +337,10 @@ namespace XrayUI.ViewModels
         [ObservableProperty]
         public partial bool HotkeyRestoreIsSet { get; set; }
 
-        /// <summary>Assigns the combo for <see cref="GlobalHotkeyStore.ToggleId"/> or
-        /// <see cref="GlobalHotkeyStore.RestoreId"/> and notifies MainWindow to re-register.
+        [ObservableProperty]
+        public partial bool HotkeyRoutingIsSet { get; set; }
+
+        /// <summary>Assigns a global hotkey combo and notifies MainWindow to re-register.
         /// Caller (code-behind) is responsible for the actual user32 register/unregister probe.</summary>
         public void SetHotkey(int id, uint mods, uint vk)
         {
@@ -359,10 +364,15 @@ namespace XrayUI.ViewModels
                 HotkeyToggleIsSet = isSet;
                 HotkeyToggleDisplay = display;
             }
-            else
+            else if (id == GlobalHotkeyStore.RestoreId)
             {
                 HotkeyRestoreIsSet = isSet;
                 HotkeyRestoreDisplay = display;
+            }
+            else if (id == GlobalHotkeyStore.RoutingId)
+            {
+                HotkeyRoutingIsSet = isSet;
+                HotkeyRoutingDisplay = display;
             }
         }
 
@@ -529,6 +539,7 @@ namespace XrayUI.ViewModels
 
             RefreshDisplay(GlobalHotkeyStore.ToggleId);
             RefreshDisplay(GlobalHotkeyStore.RestoreId);
+            RefreshDisplay(GlobalHotkeyStore.RoutingId);
         }
 
         public void LoadDisplayOptions(AppSettings settings)

@@ -326,6 +326,14 @@ namespace XrayUI
             {
                 RestoreFromTray();
             }
+            else if (id == GlobalHotkeyStore.RoutingId)
+            {
+                var panel = ViewModel.ControlPanel;
+                var mode = panel.RoutingMode == "global" ? "smart" : "global";
+                var cmd = panel.SetRoutingModeCommand;
+                if (panel.IsBuiltInConfigEnabled && cmd.CanExecute(mode))
+                    _ = cmd.ExecuteAsync(mode);
+            }
         }
 
         private void OnGlobalHotkeysChanged(object? sender, EventArgs e) => RegisterGlobalHotkeys();
@@ -347,14 +355,14 @@ namespace XrayUI
                 Debug.WriteLine("[Hotkey] Failed to enqueue post-takeover hotkey registration.");
         }
 
-        // Idempotent: always unregisters both ids first, then re-registers whichever have a
+        // Idempotent: unregisters each id before re-registering whichever have a
         // combo assigned (no separate enabled flag — presence of a combo means active). Safe to
         // call at startup and any time the Personalize page commits a hotkey change.
         private void RegisterGlobalHotkeys()
         {
             var hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
 
-            foreach (var id in new[] { GlobalHotkeyStore.ToggleId, GlobalHotkeyStore.RestoreId })
+            foreach (var id in new[] { GlobalHotkeyStore.ToggleId, GlobalHotkeyStore.RestoreId, GlobalHotkeyStore.RoutingId })
             {
                 HotkeyInterop.UnregisterHotKey(hWnd, id);
 
@@ -549,6 +557,7 @@ namespace XrayUI
             var hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
             HotkeyInterop.UnregisterHotKey(hWnd, GlobalHotkeyStore.ToggleId);
             HotkeyInterop.UnregisterHotKey(hWnd, GlobalHotkeyStore.RestoreId);
+            HotkeyInterop.UnregisterHotKey(hWnd, GlobalHotkeyStore.RoutingId);
             AppWindow.IsShownInSwitchers = true;
         }
 

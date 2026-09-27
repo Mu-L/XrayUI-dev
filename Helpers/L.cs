@@ -203,6 +203,7 @@ public static class L
     public static string Personalize_HotkeyRecorderPlaceholder => Loc.GetString("Personalize_HotkeyRecorderPlaceholder");
     public static string Personalize_HotkeyToggleAutomationName  => Loc.GetString("Personalize_HotkeyToggleAutomationName");
     public static string Personalize_HotkeyRestoreAutomationName => Loc.GetString("Personalize_HotkeyRestoreAutomationName");
+    public static string Personalize_HotkeyRoutingAutomationName => Loc.GetString("Personalize_HotkeyRoutingAutomationName");
     public static string Personalize_HotkeysDialogTitle         => Loc.GetString("Personalize_HotkeysDialogTitle");
     public static string Personalize_ClearDataConfirmTitle      => Loc.GetString("Personalize_ClearDataConfirmTitle");
     public static string Personalize_ClearDataConfirmMsg        => Loc.GetString("Personalize_ClearDataConfirmMsg");

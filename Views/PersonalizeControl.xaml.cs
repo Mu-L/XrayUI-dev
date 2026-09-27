@@ -25,8 +25,10 @@ namespace XrayUI.Views
 
             AutomationProperties.SetName(ToggleHotkeyButton, L.Personalize_HotkeyToggleAutomationName);
             AutomationProperties.SetName(RestoreHotkeyButton, L.Personalize_HotkeyRestoreAutomationName);
+            AutomationProperties.SetName(RoutingHotkeyButton, L.Personalize_HotkeyRoutingAutomationName);
             ToolTipService.SetToolTip(ToggleHotkeyButton, L.Personalize_HotkeyRecordTooltip);
             ToolTipService.SetToolTip(RestoreHotkeyButton, L.Personalize_HotkeyRecordTooltip);
+            ToolTipService.SetToolTip(RoutingHotkeyButton, L.Personalize_HotkeyRecordTooltip);
         }
 
         private async void ExportPresetButton_Click(object sender, RoutedEventArgs e)
@@ -185,7 +187,9 @@ namespace XrayUI.Views
 
         private async void HotkeyButton_Click(object sender, RoutedEventArgs e)
         {
-            var id = ReferenceEquals(sender, ToggleHotkeyButton) ? GlobalHotkeyStore.ToggleId : GlobalHotkeyStore.RestoreId;
+            var id = ReferenceEquals(sender, ToggleHotkeyButton) ? GlobalHotkeyStore.ToggleId
+                : ReferenceEquals(sender, RestoreHotkeyButton) ? GlobalHotkeyStore.RestoreId
+                : GlobalHotkeyStore.RoutingId;
             var (mods, vk) = GlobalHotkeyStore.GetCombo(id);
             var result = await ViewModel.Dialogs.ShowHotkeyRecorderDialogAsync(L.Personalize_HotkeysDialogTitle, mods, vk);
             if (result is null) return; // cancelled — nothing touched

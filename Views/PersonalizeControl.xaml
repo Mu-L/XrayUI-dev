@@ -858,6 +858,38 @@
                                 </StackPanel>
                             </Button>
                         </Grid>
+
+                        <!-- Toggle Smart / Global routing -->
+                        <Grid MinHeight="52" Padding="58,10,16,10" ColumnSpacing="12"
+                              BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                              BorderThickness="0,1,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0"
+                                       x:Uid="Personalize_HotkeyRoutingTitle"
+                                       Text="切换路由模式"
+                                       FontSize="14"
+                                       TextWrapping="Wrap"
+                                       VerticalAlignment="Center" />
+
+                            <Button Grid.Column="1"
+                                    x:Name="RoutingHotkeyButton"
+                                    MinWidth="150"
+                                    HorizontalContentAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Click="HotkeyButton_Click">
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="6">
+                                    <FontIcon Glyph="&#xE710;"
+                                              FontSize="12"
+                                              Visibility="{x:Bind ViewModel.HotkeyRoutingIsSet, Mode=OneWay, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
+                                    <TextBlock Text="{x:Bind ViewModel.HotkeyRoutingDisplay, Mode=OneWay}" />
+                                </StackPanel>
+                            </Button>
+                        </Grid>
                     </StackPanel>
                 </Expander>
 

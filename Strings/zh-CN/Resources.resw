@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -1181,6 +1181,12 @@
   <data name="Personalize_HotkeyNotSet" xml:space="preserve">
     <value>分配快捷方式</value>
   </data>
+  <data name="Personalize_HotkeyRoutingTitle.Text" xml:space="preserve">
+    <value>切换路由模式</value>
+  </data>
+  <data name="Personalize_HotkeyRoutingAutomationName" xml:space="preserve">
+    <value>切换智能分流和全局路由快捷键</value>
+  </data>
   <data name="Personalize_HotkeyConflictTitle" xml:space="preserve">
     <value>快捷键设置失败</value>
   </data>
@@ -1290,7 +1296,9 @@
     <value>确定要清除所有数据吗？</value>
   </data>
   <data name="Personalize_ClearDataConfirmMsg" xml:space="preserve">
-    <value>此操作将永久清空所有已保存的服务器节点、订阅源、自定义路由规则及应用设置，并恢复出厂默认状态。完成后应用将自动重启。&#x0a;&#x0a;此操作无法撤销，确定要继续吗？</value>
+    <value>此操作将永久清空所有已保存的服务器节点、订阅源、自定义路由规则及应用设置，并恢复出厂默认状态。完成后应用将自动重启。
+
+此操作无法撤销，确定要继续吗？</value>
   </data>
   <data name="Personalize_ClearDataConfirmBtn" xml:space="preserve">
     <value>清除全部数据</value>

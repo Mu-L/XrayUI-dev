@@ -99,6 +99,8 @@ namespace XrayUI.Models
         public string? HotkeyToggleCombo { get; set; }
         /// <summary>"mods:vk", or null if never set.</summary>
         public string? HotkeyRestoreCombo { get; set; }
+        /// <summary>"mods:vk" for switching smart/global routing, or null if never set.</summary>
+        public string? HotkeyRoutingCombo { get; set; }
 
         // ── DNS ───────────────────────────────────────────────────────────────
         /// <summary>Direct DNS for domestic domains (geosite:cn). null = choose the default based on TUN mode.</summary>
