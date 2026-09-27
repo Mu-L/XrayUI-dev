@@ -13,6 +13,8 @@ namespace XrayUI.Helpers
 
         public static string SettingsJsonPath { get; } = Path.Combine(LocalAppDataDir, "settings.json");
 
+        public static string RecentConnectionsPath { get; } = Path.Combine(LocalAppDataDir, "recent-connections.json");
+
         /// <summary>User-authored config profiles. Fixed file names because the slots are
         /// fixed — a user can drop their own file straight in here to replace one.</summary>
         public static string ProfilesDir { get; } = Path.Combine(LocalAppDataDir, "profiles");

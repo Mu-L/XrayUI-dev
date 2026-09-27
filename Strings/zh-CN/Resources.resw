@@ -1498,4 +1498,16 @@
   <data name="HotkeyRecorder_Instruction.Text" xml:space="preserve">
     <value>点击下方区域，然后按下想要绑定的组合键</value>
   </data>
+  <data name="JumpList_Recent" xml:space="preserve">
+    <value>最近连接</value>
+  </data>
+  <data name="JumpList_Title" xml:space="preserve">
+    <value>任务栏快速连接</value>
+  </data>
+  <data name="JumpList_ActivationFailed" xml:space="preserve">
+    <value>无法处理任务栏连接请求。请打开 XrayUI，选择节点后重试。</value>
+  </data>
+  <data name="JumpList_Unavailable" xml:space="preserve">
+    <value>此节点已删除或当前不可用。请选择其他节点。</value>
+  </data>
 </root>

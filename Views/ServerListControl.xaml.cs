@@ -90,6 +90,19 @@ namespace XrayUI.Views
 
         private void ServersListView_Loaded(object sender, RoutedEventArgs e)
         {
+            ViewModel.RevealSelectionRequested -= OnRevealSelectionRequested;
+            ViewModel.RevealSelectionRequested += OnRevealSelectionRequested;
+            Unloaded -= OnControlUnloaded;
+            Unloaded += OnControlUnloaded;
+            QueueInitialScroll();
+        }
+
+        private void OnControlUnloaded(object sender, RoutedEventArgs e) =>
+            ViewModel.RevealSelectionRequested -= OnRevealSelectionRequested;
+
+        private void OnRevealSelectionRequested(object? sender, EventArgs e)
+        {
+            _initialScrollDone = false;
             QueueInitialScroll();
         }
 

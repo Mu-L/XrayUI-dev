@@ -14,6 +14,8 @@ namespace XrayUI.ViewModels
     public partial class MainViewModel : BaseViewModel
     {
         private readonly SettingsService _settings;
+        private readonly IDialogService _dialogs;
+        private readonly JumpListService _jumpList = new();
         private readonly StartupService _startupService;
         private readonly IUpdateService _updateService;
         private readonly DispatcherQueue? _uiDispatcher;
@@ -72,6 +74,7 @@ namespace XrayUI.ViewModels
             IUpdateService  updateService)
         {
             _settings       = settings;
+            _dialogs        = dialogs;
             _startupService = startupService;
             _updateService  = updateService;
             // MainViewModel is constructed on the UI thread (in MainWindow ctor before
@@ -96,6 +99,7 @@ namespace XrayUI.ViewModels
             ControlPanel.GetSelectedServer = () => ServerList.SelectedServer;
             ControlPanel.GetAllServers = () => ServerList.Servers;
             ControlPanel.CanStartSelectedServer = () => ServerList.CanRunSelectedServer;
+            ServerList.ServersChanged += (_, _) => _ = _jumpList.RefreshAsync(ServerList.Servers);
             ServerDetail.GetAllServers = () => ServerList.Servers;
             ServerDetail.ResolveGroupName = ServerList.GetGroupDisplayName;
             ServerDetail.OpenSubscriptions = ServerList.OpenSubscriptionsOnManagePageAsync;
@@ -331,6 +335,30 @@ namespace XrayUI.ViewModels
             });
         }
 
+        public async Task ConnectFromJumpListAsync(JumpListRequest request, bool useDefaultMode)
+        {
+            ClosePersonalize();
+            ServerEntry? FindTarget() => ServerList.Servers.FirstOrDefault(
+                s => string.Equals(s.Id, request.ServerId, StringComparison.Ordinal));
+
+            if (FindTarget() is null)
+            {
+                await _dialogs.ShowErrorAsync(L.JumpList_Title, L.JumpList_Unavailable);
+                return;
+            }
+            if (useDefaultMode && (await _settings.LoadSettingsAsync()).IsFailedLoadFallback)
+            {
+                await _dialogs.ShowErrorAsync(L.Settings_InvalidTitle, L.Settings_InvalidMsg);
+                return;
+            }
+            await ControlPanel.ConnectFromJumpListAsync(request.ServerId, () =>
+            {
+                if (FindTarget() is not { } target) return false;
+                ServerList.RevealServer(target);
+                return true;
+            }, useDefaultMode);
+        }
+
         private async Task TryAutoConnectAsync(AppSettings s)
         {
             var target = (!string.IsNullOrEmpty(s.LastAutoConnectServerId)
@@ -496,7 +524,10 @@ namespace XrayUI.ViewModels
             if (e.PropertyName != nameof(ControlPanelViewModel.IsRunning)) return;
 
             var isRunning = ControlPanel.IsRunning;
-            UpdateActiveServer(isRunning ? ServerList.SelectedServer : null);
+            UpdateActiveServer(ControlPanel.ActiveServer);
+            // A successful connect is what the taskbar's recent list records.
+            if (isRunning)
+                _ = _jumpList.RefreshAsync(ServerList.Servers, ControlPanel.ActiveServerId);
             ServerList.IsProxyRunning = isRunning;
             OnPropertyChanged(nameof(ActiveServerName));
             OnPropertyChanged(nameof(TrayTooltip));

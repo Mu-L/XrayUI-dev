@@ -49,10 +49,12 @@ namespace XrayUI.ViewModels
         private ServerEntry? _activeServer;
         private string _activeServerName = string.Empty;
 
+        public ServerEntry? ActiveServer => IsRunning ? _activeServer : null;
+
         /// <summary>Id of the node xray is running right now, or null when stopped. Read by
         /// PersonalizeViewModel when auto-connect is switched on mid-session, so the boot
         /// target is the node actually in use rather than whatever the list has selected.</summary>
-        public string? ActiveServerId => IsRunning ? _activeServer?.Id : null;
+        public string? ActiveServerId => ActiveServer?.Id;
 
         /// <summary>The local socks/http port the running config actually exposes, or null when
         /// xray is stopped or the active config profile publishes no socks/http inbound on a
@@ -161,36 +163,37 @@ namespace XrayUI.ViewModels
 
             try
             {
-                if (IsRunning)
+                // Serialize with SwitchToSelectedServerAsync / ConnectFromJumpListAsync and hold
+                // IsReapplying: the netsh cleanup inside the stop path now runs off the UI thread,
+                // so without these gates a switch (double-click / subscription auto-switch /
+                // taskbar jump list) could interleave with the multi-second stop or a start and
+                // stomp the session state.
+                var stopping = IsRunning;
+                await _reapplyLock.WaitAsync();
+                try
                 {
-                    // Serialize with SwitchToSelectedServerAsync and hold IsReapplying:
-                    // the netsh cleanup inside the stop path now runs off the UI thread,
-                    // so without these gates a switch (double-click / subscription
-                    // auto-switch) could interleave with the multi-second stop and
-                    // stomp the session state.
-                    await _reapplyLock.WaitAsync();
+                    if (IsRunning != stopping) return;
+
+                    IsReapplying = true;
                     try
                     {
-                        if (!IsRunning) return;
-
-                        IsReapplying = true;
-                        try
-                        {
-                            await StopCurrentSessionAsync();
-                        }
-                        finally
-                        {
-                            IsReapplying = false;
-                        }
+                        if (stopping) await StopCurrentSessionAsync();
+                        else await StartSelectedServerAsync();
+                    }
+                    // A failed start is unwound while the gate is still held.
+                    catch (Exception ex) when (!stopping)
+                    {
+                        await HandleStartStopFailureAsync(ex);
                     }
                     finally
                     {
-                        _reapplyLock.Release();
+                        IsReapplying = false;
                     }
-                    return;
                 }
-
-                await StartSelectedServerAsync();
+                finally
+                {
+                    _reapplyLock.Release();
+                }
             }
             catch (Exception ex)
             {
@@ -235,6 +238,49 @@ namespace XrayUI.ViewModels
             finally
             {
                 _reapplyLock.Release();
+            }
+        }
+
+        /// <summary>Connect to an explicit taskbar target, preserving an existing session's mode.
+        /// Selection and the start/switch share the same gate as other connection operations.</summary>
+        public async Task ConnectFromJumpListAsync(string serverId, Func<bool> selectServer, bool useDefaultMode)
+        {
+            await _reapplyLock.WaitAsync();
+            try
+            {
+                IsReapplying = true;
+                if (!await SelectTargetAsync()) return;
+
+                // A session whose xray already died is stopped like a live one, but the
+                // connect then counts as a cold start.
+                var live = IsRunning && _xray.IsRunning;
+                if (live && string.Equals(ActiveServerId, serverId, StringComparison.Ordinal)) return;
+                if (IsRunning) await StopCurrentSessionAsync();
+
+                if (!live && useDefaultMode)
+                {
+                    // For this session only: SetProxyMode is the sole writer of the saved proxy
+                    // mode, so the next normal launch comes back in the mode the user chose.
+                    SetTunEnabledSilently(false);
+                    IsSystemProxyEnabled = true;
+                }
+
+                // Selection may change while stopping; the explicit request remains authoritative.
+                if (!await SelectTargetAsync()) return;
+                await StartSelectedServerAsync();
+            }
+            catch (Exception ex) { await HandleStartStopFailureAsync(ex); }
+            finally
+            {
+                IsReapplying = false;
+                _reapplyLock.Release();
+            }
+
+            async Task<bool> SelectTargetAsync()
+            {
+                if (selectServer() && CanStartSelectedServer()) return true;
+                await _dialogs.ShowErrorAsync(L.JumpList_Title, L.JumpList_Unavailable);
+                return false;
             }
         }
 
@@ -307,7 +353,6 @@ namespace XrayUI.ViewModels
             else
             {
                 appSettings.LastTunServerHost    = null;
-                appSettings.IsSystemProxyEnabled = IsSystemProxyEnabled;
                 ApplySystemProxy(built.SystemProxyPort);
                 await TrySaveSettingsAsync(appSettings, "persist system proxy settings");
             }
@@ -350,8 +395,9 @@ namespace XrayUI.ViewModels
         /// previewing all have to agree on them — a preview that silently diverges from what
         /// start actually builds is the failure the preview exists to prevent.
         ///
-        /// IsSystemProxyEnabled is deliberately not here: StartSelectedServerAsync only commits it
-        /// on the non-TUN branch, after the build.
+        /// IsSystemProxyEnabled is deliberately not here, nor written back on start or reapply:
+        /// the builder never reads it, and SetProxyMode is its only persisted writer — so a
+        /// jump-list cold start can switch it on for one session without replacing the saved mode.
         /// </summary>
         /// <param name="tunMode">Pins TUN mode for callers that captured one value for a whole
         /// sequence, rather than reading the live property that the user can toggle mid-start.</param>
@@ -436,7 +482,6 @@ namespace XrayUI.ViewModels
                 {
                     var settings = await _settings.LoadSettingsAsync();
                     ApplyLiveSessionState(settings);
-                    settings.IsSystemProxyEnabled = IsSystemProxyEnabled;
 
                     var built = await BuildForNextStartAsync(activeServer, settings, settings.IsTunMode);
 
@@ -908,20 +953,22 @@ namespace XrayUI.ViewModels
             // Business code: "system" = take over WinINet system proxy, "manual" = leave
             // registry alone (user wires their apps to the local SOCKS port themselves).
             var want = mode == "system";
+            var changed = want != IsSystemProxyEnabled;
+            var s = await _settings.LoadSettingsAsync();
 
             // No-op guard: clicking the already-selected radio must not re-hit
-            // the registry or re-write settings.
-            if (want == IsSystemProxyEnabled) return;
+            // the registry or re-write settings. The exception is a mode a jump-list
+            // cold start switched on without saving: this pick is the user's own and gets saved.
+            if (!changed && want == s.IsSystemProxyEnabled) return;
 
             IsSystemProxyEnabled = want;
-            var s = await _settings.LoadSettingsAsync();
             s.IsSystemProxyEnabled = IsSystemProxyEnabled;
             await TrySaveSettingsAsync(s, "persist proxy mode");
 
             // Apply live if xray is running outside TUN (UI prevents this call in TUN+Running).
             // Note: system proxy lives in Windows registry, not in xray config — so no
             // ReapplyRoutingAsync needed; just flip the registry flag.
-            if (IsRunning && !IsTunMode)
+            if (changed && IsRunning && !IsTunMode)
             {
                 if (IsSystemProxyEnabled)
                     ApplySystemProxy(_activeLocalProxyPort);

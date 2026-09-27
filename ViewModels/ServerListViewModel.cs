@@ -429,7 +429,11 @@ namespace XrayUI.ViewModels
                     : null)
                     ?? Servers[0];
             }
+            ServersChanged?.Invoke(this, EventArgs.Empty);
         }
+
+        /// <summary>Raised after the list is loaded from or saved to servers.json.</summary>
+        public event EventHandler? ServersChanged;
 
         // Serializes servers.json writers the way _settingsWriteLock already does for settings.json.
         // SaveServersAsync snapshots and serializes synchronously, then awaits a temp-write + atomic
@@ -448,6 +452,17 @@ namespace XrayUI.ViewModels
             {
                 _serversWriteLock.Release();
             }
+            ServersChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        public event EventHandler? RevealSelectionRequested;
+
+        public void RevealServer(ServerEntry server)
+        {
+            SearchQuery = string.Empty;
+            SelectAllGroup();
+            SelectedServer = server;
+            RevealSelectionRequested?.Invoke(this, EventArgs.Empty);
         }
 
         public async Task SaveOrderAsync()
