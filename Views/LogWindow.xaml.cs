@@ -404,7 +404,7 @@ namespace XrayUI.Views
 
         /// <summary>
         /// Shared save path for the log-settings flyout: persists the mutation, then hot-reapplies
-        /// the config (proxy mode) or tells the user it applies next session (TUN mode).
+        /// the config (in TUN mode that rebuilds the session).
         /// <paramref name="apply"/> returns false when the stored value already matches.
         /// </summary>
         private async Task ApplyLogSettingAsync(string title, Func<AppSettings, bool> apply)
@@ -421,12 +421,6 @@ namespace XrayUI.Views
 
                 if (!_xray.IsRunning)
                 {
-                    return;
-                }
-
-                if (settings.IsTunMode)
-                {
-                    await ShowInfoAsync(title, L.Log_PrivacySaved);
                     return;
                 }
 

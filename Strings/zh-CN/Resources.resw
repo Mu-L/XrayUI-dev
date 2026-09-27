@@ -476,9 +476,6 @@
   <data name="Log_PrivacyTitle" xml:space="preserve">
     <value>日志隐私设置</value>
   </data>
-  <data name="Log_PrivacySaved" xml:space="preserve">
-    <value>已保存，当前 TUN 会话下次启动时生效。</value>
-  </data>
   <data name="Log_PrivacyFailed" xml:space="preserve">
     <value>保存失败：{0}</value>
   </data>
