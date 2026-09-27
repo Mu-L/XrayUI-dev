@@ -29,5 +29,11 @@ namespace XrayUI.Helpers
         /// be mistaken for, or overwrite, the config actually handed to xray.exe.</summary>
         public static string XrayConfigPreviewPath { get; } =
             Path.Combine(LocalAppDataDir, "xray_config.preview.json");
+
+        /// <summary>The throwaway config a real-latency test hands its own xray.exe. It carries
+        /// every tested node's credentials and is only deleted when the test finishes, so a test
+        /// killed mid-run leaves it behind.</summary>
+        public static string XraySpeedtestConfigPath { get; } =
+            Path.Combine(LocalAppDataDir, "xray_speedtest.json");
     }
 }

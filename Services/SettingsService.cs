@@ -65,6 +65,7 @@ namespace XrayUI.Services
             }
             File.Delete(AppPaths.XrayConfigPath);
             File.Delete(AppPaths.XrayConfigPreviewPath);
+            File.Delete(AppPaths.XraySpeedtestConfigPath);
 
             var defaultSettings = new AppSettings
             {
