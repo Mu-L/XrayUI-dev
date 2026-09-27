@@ -68,7 +68,7 @@ namespace XrayUI.Services
 
         // Dedicated config path, separate from XrayService's xray_config.json so a test never
         // clobbers the live session's config file.
-        private static readonly string ConfigPath = Path.Combine(AppPaths.LocalAppDataDir, "xray_speedtest.json");
+        private static readonly string ConfigPath = AppPaths.XraySpeedtestConfigPath;
 
         /// <summary>Populated when the test core fails to start; empty on success.</summary>
         public string LastError { get; private set; } = string.Empty;

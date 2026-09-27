@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using XrayUI.Helpers;
 using XrayUI.Models;
@@ -18,6 +19,16 @@ namespace XrayUI.Services
         private static readonly string ServersFile  = Path.Combine(DataDir, "servers.json");
 
         private AppSettings? _cachedSettings;
+
+        // Every write to settings.json / servers.json passes this gate, so a factory reset can
+        // wait out a write already in flight before it seals the files.
+        private readonly SemaphoreSlim _writeGate = new(1, 1);
+
+        // Set by ResetToDefaultsAsync and left set when it succeeds, because the caller restarts
+        // straight afterwards. Any other write before exit would come from state loaded before
+        // the reset (a held AppSettings instance, the live server list) and bring the wiped data
+        // back. Only touched under _writeGate.
+        private bool _writesSealed;
 
         public SettingsService()
         {
@@ -49,6 +60,52 @@ namespace XrayUI.Services
                 FileName = SettingsFile,
                 UseShellExecute = true,
             });
+        }
+
+        /// <summary>
+        /// Resets all application settings and server entries to defaults on disk,
+        /// and deletes user-authored config profiles and generated xray configs.
+        /// On success every later save is refused for the life of the process, so the
+        /// caller must restart straight afterwards.
+        /// </summary>
+        public async Task ResetToDefaultsAsync()
+        {
+            await _writeGate.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                _writesSealed = true;
+
+                // A failed deletion must reach the caller so it reports failure instead of
+                // restarting into an apparently successful but incomplete factory reset.
+                if (Directory.Exists(AppPaths.ProfilesDir))
+                {
+                    Directory.Delete(AppPaths.ProfilesDir, recursive: true);
+                }
+                File.Delete(AppPaths.XrayConfigPath);
+                File.Delete(AppPaths.XrayConfigPreviewPath);
+                File.Delete(AppPaths.XraySpeedtestConfigPath);
+
+                var defaultSettings = new AppSettings
+                {
+                    RoutingRegion = InferDefaultRoutingRegion(),
+                    SkipInitialImport = true,
+                };
+                _cachedSettings = defaultSettings;
+                var settingsJson = JsonSerializer.Serialize(defaultSettings, AppJsonSerializerContext.Readable<AppSettings>());
+                var serversJson = JsonSerializer.Serialize(new List<ServerEntry>(), AppJsonSerializerContext.Readable<List<ServerEntry>>());
+                await AtomicFile.WriteAllTextAsync(SettingsFile, settingsJson).ConfigureAwait(false);
+                await AtomicFile.WriteAllTextAsync(ServersFile, serversJson).ConfigureAwait(false);
+            }
+            catch
+            {
+                // No restart follows a failed reset, so the app has to be able to save again.
+                _writesSealed = false;
+                throw;
+            }
+            finally
+            {
+                _writeGate.Release();
+            }
         }
 
         // ── AppSettings ───────────────────────────────────────────────────────
@@ -114,9 +171,10 @@ namespace XrayUI.Services
 
         /// <summary>
         /// Persists <paramref name="settings"/>. Returns false — without writing — when the
-        /// instance came from a failed load (see <see cref="AppSettings.IsFailedLoadFallback"/>);
-        /// callers that report success to the user, or act on the save having happened, must check
-        /// it. Throws on I/O failure, as before.
+        /// instance came from a failed load (see <see cref="AppSettings.IsFailedLoadFallback"/>),
+        /// or after a factory reset (see <see cref="ResetToDefaultsAsync"/>); callers that report
+        /// success to the user, or act on the save having happened, must check it. Throws on I/O
+        /// failure, as before.
         /// </summary>
         public async Task<bool> SaveSettingsAsync(AppSettings settings)
         {
@@ -129,10 +187,26 @@ namespace XrayUI.Services
                 return false;
             }
 
-            _cachedSettings = settings;
+            // Serialized before the gate so it still happens on the caller's thread, as before:
+            // the instance is live state the UI thread keeps mutating.
             var json = JsonSerializer.Serialize(settings, AppJsonSerializerContext.Readable<AppSettings>());
-            await AtomicFile.WriteAllTextAsync(SettingsFile, json).ConfigureAwait(false);
-            return true;
+            await _writeGate.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                if (_writesSealed)
+                {
+                    Debug.WriteLine("[SettingsService] Save refused: a factory reset replaced the files.");
+                    return false;
+                }
+
+                _cachedSettings = settings;
+                await AtomicFile.WriteAllTextAsync(SettingsFile, json).ConfigureAwait(false);
+                return true;
+            }
+            finally
+            {
+                _writeGate.Release();
+            }
         }
 
         // ── Server list ───────────────────────────────────────────────────────
@@ -166,7 +240,21 @@ namespace XrayUI.Services
         {
             var serverList = servers as List<ServerEntry> ?? servers.ToList();
             var json = JsonSerializer.Serialize(serverList, AppJsonSerializerContext.Readable<List<ServerEntry>>());
-            await AtomicFile.WriteAllTextAsync(ServersFile, json).ConfigureAwait(false);
+            await _writeGate.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                if (_writesSealed)
+                {
+                    Debug.WriteLine("[SettingsService] Server save refused: a factory reset replaced the files.");
+                    return;
+                }
+
+                await AtomicFile.WriteAllTextAsync(ServersFile, json).ConfigureAwait(false);
+            }
+            finally
+            {
+                _writeGate.Release();
+            }
         }
     }
 }

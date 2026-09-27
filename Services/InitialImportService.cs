@@ -25,6 +25,9 @@ namespace XrayUI.Services
 
             try
             {
+                if ((await _settings.LoadSettingsAsync().ConfigureAwait(false)).SkipInitialImport)
+                    return;
+
                 await TryImportServersAsync().ConfigureAwait(false);
                 await TryImportSettingsAsync().ConfigureAwait(false);
                 await TryImportProfilesAsync().ConfigureAwait(false);
