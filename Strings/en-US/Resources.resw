@@ -1146,7 +1146,7 @@
     <value>Connect after launch</value>
   </data>
   <data name="Personalize_AutoConnectDesc.Text" xml:space="preserve">
-    <value>Connect to the last used node when started at boot</value>
+    <value>Connect to the last used node in proxy mode</value>
   </data>
   <data name="Personalize_OpenFilterPanelOnStartup.Text" xml:space="preserve">
     <value>Expand filter bar on startup</value>
@@ -1514,5 +1514,11 @@ Path: {0}</value>
   </data>
   <data name="JumpList_Unavailable" xml:space="preserve">
     <value>This node was removed or is unavailable. Please choose another node.</value>
+  </data>
+  <data name="Personalize_AutoConnectAtBoot.Content" xml:space="preserve">
+    <value>At startup</value>
+  </data>
+  <data name="Personalize_AutoConnectOnOpen.Content" xml:space="preserve">
+    <value>Launch manually</value>
   </data>
 </root>

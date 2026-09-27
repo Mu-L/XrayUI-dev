@@ -131,7 +131,7 @@ namespace XrayUI.ViewModels
 
         // ── Startup initialisation (call after Window is ready) ───────────────
 
-        public async Task InitializeAsync(bool isBootLaunch = false)
+        public async Task InitializeAsync(LaunchKind launchKind)
         {
             await new InitialImportService(_settings).ImportAsync();
 
@@ -166,7 +166,7 @@ namespace XrayUI.ViewModels
             // take hundreds of ms at logon, and nothing below needs its result — a boot
             // launch proves the task exists (it started this process).
             Personalize.LoadStartup(s);
-            _ = ReconcileStartupTaskAsync(s, isBootLaunch);
+            _ = ReconcileStartupTaskAsync(s, isBootLaunch: launchKind == LaunchKind.Boot);
 
             // Translate the legacy name-based auto-connect setting to Id-based so users
             // don't lose their auto-connect target after upgrading.
@@ -180,12 +180,18 @@ namespace XrayUI.ViewModels
                 await _settings.SaveSettingsAsync(s);
             }
 
-            // Only auto-connect when the app was actually launched by the boot task
-            // (which passes --startup-minimized). Manual launches must not auto-connect.
-            // IsStartupEnabled is deliberately not consulted: the launch itself proves
-            // the task exists, and an external launcher passing our internal flag is
-            // opting into boot semantics.
-            if (isBootLaunch && s.IsAutoConnect)
+            // Boot launches (--startup-minimized) follow IsAutoConnect; IsStartupEnabled is
+            // deliberately not consulted: the launch itself proves the task exists, and an
+            // external launcher passing our internal flag is opting into boot semantics.
+            // Hand-opened launches follow their own IsAutoConnectOnOpen. Neither carries
+            // --tun, so both connect in proxy mode without a UAC prompt.
+            var autoConnect = launchKind switch
+            {
+                LaunchKind.Boot       => s.IsAutoConnect,
+                LaunchKind.ManualOpen => s.IsAutoConnectOnOpen,
+                _                     => false,
+            };
+            if (autoConnect)
                 await TryAutoConnectAsync(s);
 
             await ServerList.InitializeSubscriptionRefreshSchedulesAsync(DateTimeOffset.UtcNow);

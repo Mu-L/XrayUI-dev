@@ -230,7 +230,7 @@ namespace XrayUI.ViewModels
 
         /// <summary>Wired by MainViewModel to the control panel: id of the node xray is
         /// running right now, or null when stopped. Turning auto-connect on mid-session
-        /// records it as the boot target — otherwise enabling it after connecting would
+        /// records it as the auto-connect target — otherwise enabling it after connecting would
         /// leave nothing to connect to until the next manual connect.</summary>
         public Func<string?>? GetActiveServerId { get; set; }
 
@@ -239,6 +239,9 @@ namespace XrayUI.ViewModels
 
         [ObservableProperty]
         public partial bool IsAutoConnect { get; set; }
+
+        [ObservableProperty]
+        public partial bool IsAutoConnectOnOpen { get; set; }
 
         partial void OnIsStartupEnabledChanged(bool value)
         {
@@ -249,7 +252,13 @@ namespace XrayUI.ViewModels
         partial void OnIsAutoConnectChanged(bool value)
         {
             if (_isStartupInternalUpdate) return;
-            _ = PersistAutoConnectAsync(value);
+            _ = PersistAutoConnectAsync(s => s.IsAutoConnect = value);
+        }
+
+        partial void OnIsAutoConnectOnOpenChanged(bool value)
+        {
+            if (_isStartupInternalUpdate) return;
+            _ = PersistAutoConnectAsync(s => s.IsAutoConnectOnOpen = value);
         }
 
         // Startup gestures and Done share one read-modify-write boundary. Done must wait for
@@ -280,20 +289,24 @@ namespace XrayUI.ViewModels
             var s = await _settings.LoadSettingsAsync();
             s.IsStartupEnabled = enabled;
             // Clear auto-connect with the boot task so re-enabling startup cannot revive it.
+            // The target stays while connect-on-open still needs it.
             if (!enabled)
             {
                 SetStartupInternal(() => IsAutoConnect = false);
                 s.IsAutoConnect = false;
-                s.LastAutoConnectServerId = null;
+                if (!s.WantsAutoConnectTarget)
+                    s.LastAutoConnectServerId = null;
             }
             await _settings.SaveSettingsAsync(s);
         });
 
-        private Task PersistAutoConnectAsync(bool enabled) => WithStartupWriteLockAsync(async () =>
+        /// <summary>Persists one of the two auto-connect flags. Both share
+        /// LastAutoConnectServerId, so it is cleared only once neither wants it.</summary>
+        private Task PersistAutoConnectAsync(Action<AppSettings> apply) => WithStartupWriteLockAsync(async () =>
         {
             var s = await _settings.LoadSettingsAsync();
-            s.IsAutoConnect = enabled;
-            if (!enabled)
+            apply(s);
+            if (!s.WantsAutoConnectTarget)
                 s.LastAutoConnectServerId = null;
             else if (GetActiveServerId?.Invoke() is { } activeId)
                 s.LastAutoConnectServerId = activeId;
@@ -500,6 +513,7 @@ namespace XrayUI.ViewModels
             // authoritative UI values regardless of what the reload above returned.
             s.IsStartupEnabled = IsStartupEnabled;
             s.IsAutoConnect = IsAutoConnect;
+            s.IsAutoConnectOnOpen = IsAutoConnectOnOpen;
             s.ShowLatencyInDetails = ShowLatencyInDetails;
             s.ShowAiUnlockInDetails = ShowAiUnlockInDetails;
             s.ShowGroupInDetails = ShowGroupInDetails;
@@ -557,6 +571,7 @@ namespace XrayUI.ViewModels
         {
             IsStartupEnabled = settings.IsStartupEnabled;
             IsAutoConnect    = settings.IsAutoConnect;
+            IsAutoConnectOnOpen = settings.IsAutoConnectOnOpen;
         });
 
         public void LoadLanguage(AppSettings settings)

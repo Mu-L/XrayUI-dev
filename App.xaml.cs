@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
 using XrayUI.Helpers;
+using XrayUI.Models;
 using XrayUI.Services;
 namespace XrayUI
 {
@@ -73,13 +74,16 @@ namespace XrayUI
             var startMinimized = jumpRequest is null && cmdArgs.Contains(StartupService.StartupMinimizedArgument, StringComparer.OrdinalIgnoreCase);
             var isTunLaunch = cmdArgs.Contains(TunArgument, StringComparer.OrdinalIgnoreCase);
             var isTunTakeover = isTunLaunch && parentPid.HasValue;
+            var launchKind = startMinimized ? LaunchKind.Boot
+                : jumpRequest is null && !isTunLaunch && !parentPid.HasValue ? LaunchKind.ManualOpen
+                : LaunchKind.Other;
 
             if (!isTunTakeover && await TryRedirectToExistingInstanceAsync(startMinimized, jumpRequest))
             {
                 return;
             }
 
-            _window = new MainWindow(startMinimized);
+            _window = new MainWindow(launchKind);
             _window.Closed += (_, _) => CleanupOnExit();
             if (jumpRequest is not null)
                 _pendingConnections.Enqueue((jumpRequest, !isTunLaunch));
