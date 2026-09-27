@@ -524,20 +524,27 @@ namespace XrayUI.ViewModels
         }
 
         /// <summary>
-        /// TUN counterpart of the plain restart in <see cref="ReapplyRoutingAsync"/>: the same full
-        /// stop-then-start a node switch runs, targeting the live node. xray owns the TUN routes
+        /// TUN counterpart of the plain restart in <see cref="ReapplyRoutingAsync"/>: the stop and
+        /// start a node switch runs, targeting the live node. xray owns the TUN routes
         /// (autoSystemRoutingTable), so a fresh session re-creates the adapter and its routes on
         /// its own; the stop half runs the route/DNS cleanup and the start half the preflight,
         /// exactly as when switching. Existing connections drop, as they do on a switch.
-        /// Caller holds _reapplyLock.
+        ///
+        /// Unlike a switch, the session is torn down without <see cref="ClearActiveSession"/>, so
+        /// IsRunning stays true throughout, as it does across the proxy-mode restart. Flipping it
+        /// would read as a fresh connect to MainViewModel — rerunning the AI probes, the update
+        /// check and the Jump List record for a node that never changed. Only a failed start
+        /// clears the session. Caller holds _reapplyLock.
         /// </summary>
         private async Task ReapplyTunSessionAsync(ServerEntry activeServer)
         {
             IsReapplying = true;
             try
             {
-                await StopCurrentSessionAsync();
-                await StartSelectedServerAsync(activeServer);
+                await CleanupTunStateAsync();
+                await _xray.StopAsync();
+                if (!await StartSelectedServerAsync(activeServer))
+                    ClearActiveSession();
             }
             catch (Exception ex)
             {
