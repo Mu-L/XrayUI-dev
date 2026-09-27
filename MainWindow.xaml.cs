@@ -64,6 +64,14 @@ namespace XrayUI
         private const uint TrayIconId = 0x5852;
 
         public MainViewModel ViewModel { get; }
+        private readonly TaskCompletionSource _initialization = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal Task Initialization => _initialization.Task;
+
+        internal void ShowForJumpList()
+        {
+            RestoreFromTray();
+            SetMiniMode(false);
+        }
 
         public MainWindow(bool startMinimized = false)
         {
@@ -147,7 +155,16 @@ namespace XrayUI
                 AppWindow.Hide();
             }
 
-            await ViewModel.InitializeAsync(isBootLaunch: _startMinimized);
+            try
+            {
+                await ViewModel.InitializeAsync(isBootLaunch: _startMinimized);
+                _initialization.TrySetResult();
+            }
+            catch (Exception ex)
+            {
+                _initialization.TrySetException(ex);
+                throw;
+            }
             RegisterGlobalHotkeys();
 
             if (_startMinimized && !HideToTray())

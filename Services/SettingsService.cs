@@ -84,6 +84,9 @@ namespace XrayUI.Services
                 File.Delete(AppPaths.XrayConfigPath);
                 File.Delete(AppPaths.XrayConfigPreviewPath);
                 File.Delete(AppPaths.XraySpeedtestConfigPath);
+                // The taskbar's recent list itself is emptied by the startup refresh after the
+                // restart, which prunes every ID the (now empty) server list no longer has.
+                File.Delete(AppPaths.RecentConnectionsPath);
 
                 var defaultSettings = new AppSettings
                 {

@@ -48,6 +48,9 @@
     <Compile Include="..\Services\EchSettings.cs" Link="Prod\Services\EchSettings.cs" />
     <Compile Include="..\Services\FinalmaskJson.cs" Link="Prod\Services\FinalmaskJson.cs" />
     <Compile Include="..\Services\SubscriptionRefreshBatchRunner.cs" Link="Prod\Services\SubscriptionRefreshBatchRunner.cs" />
+    <Compile Include="..\Services\JumpListRequest.cs" Link="Prod\Services\JumpListRequest.cs" />
+    <Compile Include="..\Services\RecentConnectionHistory.cs" Link="Prod\Services\RecentConnectionHistory.cs" />
+    <Compile Include="..\Helpers\CommandLineArguments.cs" Link="Prod\Helpers\CommandLineArguments.cs" />
   </ItemGroup>
 
 </Project>
