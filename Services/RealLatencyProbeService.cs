@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Http;
-using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -111,7 +110,7 @@ namespace XrayUI.Services
             // 1. Allocate one free loopback port per server.
             var entries = new List<(ServerEntry server, int port)>(servers.Count);
             foreach (var s in servers)
-                entries.Add((s, GetFreeLoopbackPort()));
+                entries.Add((s, LoopbackPort.PickFree()));
 
             // 2. Bind the throwaway core to the physical egress while TUN owns the default
             // route. autoOutboundsInterface belongs to the live core's TUN inbound and does not
@@ -272,18 +271,6 @@ namespace XrayUI.Services
             {
                 throttle.Release();
             }
-        }
-
-        /// <summary>
-        /// Asks the OS for a free loopback TCP port by binding to port 0 and reading the assigned
-        /// port back. There is a tiny race between releasing it here and xray binding it, but it is
-        /// the standard ephemeral-port allocation trick and good enough for a short-lived test.
-        /// </summary>
-        private static int GetFreeLoopbackPort()
-        {
-            using var listener = new TcpListener(IPAddress.Loopback, 0);
-            listener.Start();
-            return ((IPEndPoint)listener.LocalEndpoint).Port;
         }
     }
 }

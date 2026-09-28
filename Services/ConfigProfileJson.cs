@@ -142,8 +142,7 @@ namespace XrayUI.Services
             if (config[InboundsKey] is not JsonArray inbounds || inbounds.Count == 0)
                 return new ConfigProfileResult(null, ConfigProfileError.InboundsMissing);
 
-            var tun = inbounds.OfType<JsonObject>()
-                .FirstOrDefault(i => AsString(i["protocol"]) == "tun");
+            var tun = FindTunInbound(inbounds);
 
             if (tunSlot && tun is null)
                 return new ConfigProfileResult(null, ConfigProfileError.TunInboundMissing);
@@ -183,21 +182,31 @@ namespace XrayUI.Services
         /// <c>mixed-in</c>, otherwise use the first such inbound with a plain integer port.
         /// Ranges and string ports are skipped — WinInet needs a single number.
         /// </summary>
-        public static int? FindSystemProxyPort(JsonArray inbounds)
+        public static int? FindSystemProxyPort(JsonArray inbounds) =>
+            AsPort(FindSystemProxyInbound(inbounds)?["port"]);
+
+        /// <summary>
+        /// The inbound tag route tests should claim traffic arrives on: the TUN inbound in TUN
+        /// mode, otherwise the inbound the system proxy points at. A profile names its inbounds
+        /// freely, and an inboundTag rule only matches the tag actually in play. Null when that
+        /// inbound has no tag (no inboundTag rule can name it then) or there is no such inbound.
+        /// </summary>
+        public static string? FindRouteTestInboundTag(JsonArray inbounds, bool tunMode) =>
+            AsString((tunMode ? FindTunInbound(inbounds) : FindSystemProxyInbound(inbounds))?["tag"]);
+
+        private static JsonObject? FindTunInbound(JsonArray inbounds) =>
+            inbounds.OfType<JsonObject>().FirstOrDefault(i => AsString(i["protocol"]) == "tun");
+
+        private static JsonObject? FindSystemProxyInbound(JsonArray inbounds)
         {
             var proxyInbounds = inbounds.OfType<JsonObject>()
                 .Where(i => AsString(i["protocol"]) is "socks" or "http" or "mixed");
             var tagged = proxyInbounds
                 .FirstOrDefault(i => AsString(i["tag"]) == XrayConfigConstants.MixedInboundTag);
 
-            if (AsPort(tagged?["port"]) is { } taggedPort) return taggedPort;
+            if (AsPort(tagged?["port"]) is not null) return tagged;
 
-            foreach (var inbound in proxyInbounds)
-            {
-                if (AsPort(inbound["port"]) is { } port) return port;
-            }
-
-            return null;
+            return proxyInbounds.FirstOrDefault(i => AsPort(i["port"]) is not null);
         }
 
         private static bool HasUnknownOutboundTag(JsonObject config)

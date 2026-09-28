@@ -50,6 +50,12 @@ namespace XrayUI.Services
 
         public string LastError { get; private set; } = string.Empty;
 
+        /// <summary>
+        /// Route-test API of the running core, or null when nothing is running or the config
+        /// exposes none. Set before RunningChanged(true) fires and cleared before (false) does.
+        /// </summary>
+        public RouteTestEndpoint? RouteTest { get; private set; }
+
         public event EventHandler<string>? LogReceived;
 
         public event EventHandler<bool>? RunningChanged;
@@ -149,7 +155,9 @@ namespace XrayUI.Services
             }
         }
 
-        public async Task<bool> StartAsync(string configJson)
+        /// <param name="config">The config to run. Its route-test endpoint is published once the
+        /// core is up.</param>
+        public async Task<bool> StartAsync(BuiltXrayConfig config)
         {
             if (IsRunning)
             {
@@ -171,7 +179,7 @@ namespace XrayUI.Services
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
-                await File.WriteAllTextAsync(ConfigPath, configJson);
+                await File.WriteAllTextAsync(ConfigPath, config.Json);
 
                 var psi = new ProcessStartInfo
                 {
@@ -241,6 +249,7 @@ namespace XrayUI.Services
                 }
 
                 StopStartupLogCapture();
+                RouteTest = config.RouteTest;
                 RunningChanged?.Invoke(this, true);
                 return true;
             }
@@ -272,6 +281,7 @@ namespace XrayUI.Services
             }
 
             _process.Exited -= OnProcessExited;
+            RouteTest = null;
 
             try
             {
@@ -331,6 +341,7 @@ namespace XrayUI.Services
 
             process.Exited -= OnProcessExited;
             _process = null;
+            RouteTest = null;
 
             try
             {
@@ -354,6 +365,7 @@ namespace XrayUI.Services
 
         private void OnProcessExited(object? sender, EventArgs e)
         {
+            RouteTest = null;
             AppendLog(L.XrayLog_ProcessExited);
             RunningChanged?.Invoke(this, false);
         }

@@ -15,7 +15,9 @@ namespace XrayUI.Services
     /// <param name="SystemProxyPort">The port SystemProxyService should advertise, read back out
     /// of the built config so a profile that moves the port cannot desync the two. Null when the
     /// config exposes no socks/http inbound on a plain integer port.</param>
-    public readonly record struct BuiltXrayConfig(string Json, int? SystemProxyPort);
+    /// <param name="RouteTest">Where the running core answers route tests. Null only when a config
+    /// profile declares its own api section.</param>
+    public readonly record struct BuiltXrayConfig(string Json, int? SystemProxyPort, RouteTestEndpoint? RouteTest);
 
     /// <summary>
     /// Builds an xray-core JSON configuration string for the given server and app settings.
@@ -33,9 +35,11 @@ namespace XrayUI.Services
             WriteIndented = true
         };
 
+        /// <param name="apiPort">Loopback port for the route-test API.</param>
         public static BuiltXrayConfig Build(
             ServerEntry server,
             AppSettings settings,
+            int apiPort,
             IEnumerable<ServerEntry>? availableServers = null,
             string? profileJson = null)
         {
@@ -46,12 +50,51 @@ namespace XrayUI.Services
             // outbounds are never the profile's to write: they are the selected node. Injecting
             // them last means the same code path serves both, and a profile cannot desync the
             // config from the server list.
-            config["outbounds"] = BuildOutbounds(
+            var outbounds = BuildOutbounds(
                 server, settings, availableServers, profileMode: profileJson is not null);
+            config["outbounds"] = outbounds;
+
+            var routeTest = AddRouteTestApi(config, outbounds, apiPort, settings.IsTunMode);
 
             return new BuiltXrayConfig(
                 config.ToJsonString(JsonOpts),
-                ResolveSystemProxyPort(config));
+                ResolveSystemProxyPort(config),
+                routeTest);
+        }
+
+        /// <summary>
+        /// Exposes RoutingService on loopback so the log window can ask the live router where a
+        /// destination goes. api.listen opens the gRPC listener directly, with no inbound or
+        /// routing rule of its own, so the rest of the config is untouched. Added here rather than
+        /// in BuildGenerated so profile templates stay free of it; a profile that declares its own
+        /// api section keeps it, and route tests are then unavailable.
+        /// </summary>
+        private static RouteTestEndpoint? AddRouteTestApi(
+            JsonObject config, JsonArray outbounds, int port, bool tunMode)
+        {
+            if (config.ContainsKey("api")) return null;
+
+            config["api"] = new JsonObject
+            {
+                ["tag"] = XrayConfigConstants.ApiTag,
+                ["listen"] = $"127.0.0.1:{port}",
+                ["services"] = CreateStringArray("RoutingService"),
+            };
+
+            // Both read back from the built config rather than assumed, like the system proxy
+            // port: a profile may tag its inbounds anything, and xray's fallback for unmatched
+            // traffic is whichever outbound happens to come first.
+            var inboundTag = config["inbounds"] is JsonArray inbounds
+                ? ConfigProfileJson.FindRouteTestInboundTag(inbounds, tunMode)
+                : null;
+            var defaultOutboundTag =
+                outbounds.FirstOrDefault() is JsonObject first
+                && first["tag"] is JsonValue tag
+                && tag.TryGetValue<string>(out var text)
+                    ? text
+                    : string.Empty;
+
+            return new RouteTestEndpoint(port, inboundTag, defaultOutboundTag);
         }
 
         /// <summary>

@@ -479,6 +479,42 @@
   <data name="Log_PrivacyFailed" xml:space="preserve">
     <value>保存失败：{0}</value>
   </data>
+  <data name="RouteTest_Title" xml:space="preserve">
+    <value>测试路由</value>
+  </data>
+  <data name="RouteTest_Placeholder" xml:space="preserve">
+    <value>域名或 IP，如 google.com</value>
+  </data>
+  <data name="RouteTest_Run" xml:space="preserve">
+    <value>测试</value>
+  </data>
+  <data name="RouteTest_Proxy" xml:space="preserve">
+    <value>代理</value>
+  </data>
+  <data name="RouteTest_Direct" xml:space="preserve">
+    <value>直连</value>
+  </data>
+  <data name="RouteTest_Block" xml:space="preserve">
+    <value>阻断</value>
+  </data>
+  <data name="RouteTest_OutboundTag" xml:space="preserve">
+    <value>出站：{0}</value>
+  </data>
+  <data name="RouteTest_NoRuleMatched" xml:space="preserve">
+    <value>未命中任何规则，走默认出站 {0}</value>
+  </data>
+  <data name="RouteTest_NotRunning" xml:space="preserve">
+    <value>连接后可用</value>
+  </data>
+  <data name="RouteTest_ApiOwnedByProfile" xml:space="preserve">
+    <value>当前配置文件自带 api 段，无法测试</value>
+  </data>
+  <data name="RouteTest_InvalidInput" xml:space="preserve">
+    <value>请输入有效的域名或 IP</value>
+  </data>
+  <data name="RouteTest_Failed" xml:space="preserve">
+    <value>测试失败：{0}</value>
+  </data>
   <data name="Dialog_OK" xml:space="preserve">
     <value>确定</value>
   </data>
