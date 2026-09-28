@@ -83,6 +83,97 @@
                 <StackPanel Grid.Column="1"
                             Orientation="Horizontal"
                             Spacing="8">
+                    <Button x:Name="RouteTestButton"
+                            Padding="8,5">
+                        <FontIcon Glyph="&#xE721;"
+                                  FontSize="13" />
+                        <Button.Flyout>
+                            <Flyout Opened="RouteTestFlyout_Opened">
+                                <!-- Fixed width: without it the detail text never wraps. -->
+                                <StackPanel Width="300"
+                                            Spacing="12">
+                                    <StackPanel.Resources>
+                                        <Style x:Key="RouteTestBadgeTextStyle"
+                                               TargetType="TextBlock">
+                                            <Setter Property="Margin" Value="8,2" />
+                                            <Setter Property="FontSize" Value="12" />
+                                            <Setter Property="FontWeight" Value="SemiBold" />
+                                        </Style>
+                                    </StackPanel.Resources>
+                                    <TextBlock x:Name="RouteTestTitle"
+                                               Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                    <Grid ColumnDefinitions="*,Auto"
+                                          ColumnSpacing="8">
+                                        <TextBox x:Name="RouteTestInput"
+                                                 KeyDown="RouteTestInput_KeyDown" />
+                                        <Button x:Name="RouteTestRunButton"
+                                                Grid.Column="1"
+                                                Style="{StaticResource AccentButtonStyle}"
+                                                Click="RouteTestRunButton_Click" />
+                                    </Grid>
+                                    <!-- Result: one badge per outbound kind so each keeps its
+                                         ThemeResource brushes across theme switches. -->
+                                    <Grid x:Name="RouteTestResultRow"
+                                          ColumnDefinitions="Auto,*"
+                                          ColumnSpacing="8"
+                                          Visibility="Collapsed">
+                                        <Grid VerticalAlignment="Center">
+                                            <ProgressRing x:Name="RouteTestProgress"
+                                                          Width="16"
+                                                          Height="16"
+                                                          IsActive="False"
+                                                          Visibility="Collapsed" />
+                                            <!-- No stock brush is an accent (or neutral) tint:
+                                                 SystemFillColorAttentionBackgroundBrush is a
+                                                 near-transparent neutral, so these two badges
+                                                 fade a solid fill behind the text instead. -->
+                                            <Grid x:Name="RouteTestProxyBadge"
+                                                  Visibility="Collapsed">
+                                                <Rectangle RadiusX="4"
+                                                           RadiusY="4"
+                                                           Fill="{ThemeResource AccentFillColorDefaultBrush}"
+                                                           Opacity="0.15" />
+                                                <TextBlock x:Name="RouteTestProxyText"
+                                                           Style="{StaticResource RouteTestBadgeTextStyle}"
+                                                           Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                            </Grid>
+                                            <Border x:Name="RouteTestDirectBadge"
+                                                    CornerRadius="4"
+                                                    Background="{ThemeResource SystemFillColorSuccessBackgroundBrush}"
+                                                    Visibility="Collapsed">
+                                                <TextBlock x:Name="RouteTestDirectText"
+                                                           Style="{StaticResource RouteTestBadgeTextStyle}"
+                                                           Foreground="{ThemeResource SystemFillColorSuccessBrush}" />
+                                            </Border>
+                                            <Border x:Name="RouteTestBlockBadge"
+                                                    CornerRadius="4"
+                                                    Background="{ThemeResource SystemFillColorCriticalBackgroundBrush}"
+                                                    Visibility="Collapsed">
+                                                <TextBlock x:Name="RouteTestBlockText"
+                                                           Style="{StaticResource RouteTestBadgeTextStyle}"
+                                                           Foreground="{ThemeResource SystemFillColorCriticalBrush}" />
+                                            </Border>
+                                            <Grid x:Name="RouteTestOtherBadge"
+                                                  Visibility="Collapsed">
+                                                <Rectangle RadiusX="4"
+                                                           RadiusY="4"
+                                                           Fill="{ThemeResource TextFillColorSecondaryBrush}"
+                                                           Opacity="0.15" />
+                                                <TextBlock x:Name="RouteTestOtherText"
+                                                           Style="{StaticResource RouteTestBadgeTextStyle}" />
+                                            </Grid>
+                                        </Grid>
+                                        <TextBlock x:Name="RouteTestDetail"
+                                                   Grid.Column="1"
+                                                   FontSize="12"
+                                                   TextWrapping="Wrap"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </Grid>
+                                </StackPanel>
+                            </Flyout>
+                        </Button.Flyout>
+                    </Button>
                     <Button x:Name="LogPrivacyButton"
                             Padding="8,5">
                         <FontIcon Glyph="&#xE72E;"

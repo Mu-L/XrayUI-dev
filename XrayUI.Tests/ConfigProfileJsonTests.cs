@@ -408,4 +408,50 @@ public class ConfigProfileJsonTests
 
         Assert.Null(ConfigProfileJson.FindSystemProxyPort(inbounds));
     }
+
+    // ── Route test inbound tag ────────────────────────────────────────────
+
+    private static JsonArray RouteTestInbounds() => JsonNode.Parse("""
+        [
+          { "tag": "custom-tun", "protocol": "tun", "settings": { "name": "xray-tun" } },
+          { "tag": "api-in", "protocol": "dokodemo-door", "port": 10085 },
+          { "tag": "custom-in", "protocol": "mixed", "port": 18888 }
+        ]
+        """)!.AsArray();
+
+    [Fact]
+    public void FindRouteTestInboundTag_ProxyMode_UsesTheSystemProxyInboundsOwnTag()
+    {
+        Assert.Equal("custom-in", ConfigProfileJson.FindRouteTestInboundTag(RouteTestInbounds(), tunMode: false));
+    }
+
+    [Fact]
+    public void FindRouteTestInboundTag_TunMode_UsesTheTunInboundsOwnTag()
+    {
+        Assert.Equal("custom-tun", ConfigProfileJson.FindRouteTestInboundTag(RouteTestInbounds(), tunMode: true));
+    }
+
+    [Fact]
+    public void FindRouteTestInboundTag_FollowsTheInboundThatSuppliesTheSystemProxyPort()
+    {
+        // The tagged mixed-in has no usable port, so the system proxy (and route tests) go to
+        // the next inbound — its tag must be the one reported, not mixed-in's.
+        var inbounds = JsonNode.Parse("""
+            [
+              { "tag": "mixed-in", "protocol": "socks", "port": "1080-1090" },
+              { "tag": "fallback-in", "protocol": "socks", "port": 1081 }
+            ]
+            """)!.AsArray();
+
+        Assert.Equal("fallback-in", ConfigProfileJson.FindRouteTestInboundTag(inbounds, tunMode: false));
+    }
+
+    [Fact]
+    public void FindRouteTestInboundTag_UntaggedOrMissingInbound_ReturnsNull()
+    {
+        var untagged = JsonNode.Parse("""[ { "protocol": "http", "port": 8080 } ]""")!.AsArray();
+
+        Assert.Null(ConfigProfileJson.FindRouteTestInboundTag(untagged, tunMode: false));
+        Assert.Null(ConfigProfileJson.FindRouteTestInboundTag(untagged, tunMode: true));
+    }
 }

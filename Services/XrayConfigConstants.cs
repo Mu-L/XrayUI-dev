@@ -12,6 +12,7 @@
         public const string MixedInboundTag  = "mixed-in";
         public const string DnsOutboundTag   = "dns-out";
         public const string FakeDnsServerTag = "fakedns";
+        public const string ApiTag           = "api";
 
         // Outbound tags. These are the tags XrayUI injects into every config, generated or
         // hand-written, so a config profile's routing rules may reference them: ConfigProfileJson

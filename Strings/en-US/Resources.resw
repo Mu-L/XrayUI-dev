@@ -479,6 +479,42 @@
   <data name="Log_PrivacyFailed" xml:space="preserve">
     <value>Save failed: {0}</value>
   </data>
+  <data name="RouteTest_Title" xml:space="preserve">
+    <value>Test route</value>
+  </data>
+  <data name="RouteTest_Placeholder" xml:space="preserve">
+    <value>Domain or IP, e.g. google.com</value>
+  </data>
+  <data name="RouteTest_Run" xml:space="preserve">
+    <value>Test</value>
+  </data>
+  <data name="RouteTest_Proxy" xml:space="preserve">
+    <value>Proxy</value>
+  </data>
+  <data name="RouteTest_Direct" xml:space="preserve">
+    <value>Direct</value>
+  </data>
+  <data name="RouteTest_Block" xml:space="preserve">
+    <value>Block</value>
+  </data>
+  <data name="RouteTest_OutboundTag" xml:space="preserve">
+    <value>Outbound: {0}</value>
+  </data>
+  <data name="RouteTest_NoRuleMatched" xml:space="preserve">
+    <value>No rule matched; uses the default outbound {0}</value>
+  </data>
+  <data name="RouteTest_NotRunning" xml:space="preserve">
+    <value>Available while connected</value>
+  </data>
+  <data name="RouteTest_ApiOwnedByProfile" xml:space="preserve">
+    <value>The active config profile has its own api section, so routes can't be tested</value>
+  </data>
+  <data name="RouteTest_InvalidInput" xml:space="preserve">
+    <value>Enter a valid domain or IP address</value>
+  </data>
+  <data name="RouteTest_Failed" xml:space="preserve">
+    <value>Test failed: {0}</value>
+  </data>
   <data name="Dialog_OK" xml:space="preserve">
     <value>OK</value>
   </data>

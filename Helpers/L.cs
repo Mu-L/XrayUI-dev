@@ -250,6 +250,18 @@ public static class L
     public static string Log_Clear         => Loc.GetString("Log_Clear");
     public static string Log_PrivacyTooltip => Loc.GetString("Log_PrivacyTooltip");
 
+    // ── LogWindow route test (RouteTest_OutboundTag / _NoRuleMatched / _Failed take {0} — use
+    //    Loc.Format at the call site) ─────────────────────────────────────────
+    public static string RouteTest_Title             => Loc.GetString("RouteTest_Title");
+    public static string RouteTest_Placeholder       => Loc.GetString("RouteTest_Placeholder");
+    public static string RouteTest_Run               => Loc.GetString("RouteTest_Run");
+    public static string RouteTest_Proxy             => Loc.GetString("RouteTest_Proxy");
+    public static string RouteTest_Direct            => Loc.GetString("RouteTest_Direct");
+    public static string RouteTest_Block             => Loc.GetString("RouteTest_Block");
+    public static string RouteTest_NotRunning        => Loc.GetString("RouteTest_NotRunning");
+    public static string RouteTest_ApiOwnedByProfile => Loc.GetString("RouteTest_ApiOwnedByProfile");
+    public static string RouteTest_InvalidInput      => Loc.GetString("RouteTest_InvalidInput");
+
     // ── MainWindow / Tray ──────────────────────────────────────────────────
     public static string MainWindow_Title      => Loc.GetString("MainWindow_Title");
     public static string MainWindow_ToggleMini => Loc.GetString("MainWindow_ToggleMini");

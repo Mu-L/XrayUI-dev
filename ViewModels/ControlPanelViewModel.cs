@@ -332,7 +332,7 @@ namespace XrayUI.ViewModels
             }
 
             var built = await BuildForNextStartAsync(server, appSettings, tunMode);
-            var ok = await _xray.StartAsync(built.Json);
+            var ok = await _xray.StartAsync(built);
 
             if (!ok)
             {
@@ -444,7 +444,10 @@ namespace XrayUI.ViewModels
             ServerEntry server, AppSettings settings, bool tunMode)
         {
             var profileJson = await _profiles.LoadActiveAsync(settings, tunMode);
-            return XrayConfigBuilder.Build(server, settings, GetAllServers(), profileJson);
+            // Picked per build rather than fixed, so it cannot collide with whatever else the
+            // machine runs. Previews get one too and so show the api section a start writes.
+            return XrayConfigBuilder.Build(
+                server, settings, LoopbackPort.PickFree(), GetAllServers(), profileJson);
         }
 
         private async Task HandleStartStopFailureAsync(Exception ex)
@@ -491,7 +494,7 @@ namespace XrayUI.ViewModels
 
                     var built = await BuildForNextStartAsync(activeServer, settings, settings.IsTunMode);
 
-                    var ok = await _xray.StartAsync(built.Json);
+                    var ok = await _xray.StartAsync(built);
                     if (!ok)
                     {
                         var detail = string.IsNullOrEmpty(_xray.LastError)
