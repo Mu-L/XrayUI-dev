@@ -85,7 +85,7 @@
                             Spacing="8">
                     <Button x:Name="RouteTestButton"
                             Padding="8,5">
-                        <FontIcon Glyph="&#xE721;"
+                        <FontIcon Glyph="&#xF196;"
                                   FontSize="13" />
                         <Button.Flyout>
                             <Flyout Opened="RouteTestFlyout_Opened">
